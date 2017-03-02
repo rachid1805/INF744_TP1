@@ -7,12 +7,25 @@ namespace DataLinkApplication
 {
   public class Frame
   {
-    #region Properties
+    #region Public Functions
 
     public FrameKind Kind { get; set; }
-    public int Seq { get; set; }
-    public int Ack { get; set; }
+    public byte Seq { get; set; }
+    public byte Ack { get; set; }
     public Packet Info { get; set; }
+
+    public static Frame CopyFrom(Frame frame)
+    {
+      var newFrame = new Frame
+      {
+        Kind = frame.Kind,
+        Seq = frame.Seq,
+        Ack = frame.Ack,
+        Info = Packet.CopyFrom(frame.Info)
+      };
+
+      return newFrame;
+    }
 
     #endregion
   }
