@@ -16,7 +16,7 @@ namespace DataLinkApplication
     protected AutoResetEvent _frameTimeoutEvent;
     protected AutoResetEvent _ackTimeoutEvent;
     protected AutoResetEvent _closeEvent;
-    protected WaitHandle[] m_waitHandles;
+    protected WaitHandle[] _waitHandles;
 
     #endregion
 
@@ -26,22 +26,6 @@ namespace DataLinkApplication
     /// <filterpriority>2</filterpriority>
     void IDisposable.Dispose()
     {
-      if (_networkLayerReadyEvent != null)
-      {
-        //// Request that the worker thread stop itself
-        //m_closingEvent.Set();
-
-        //// Use the Join method to block the current thread until the object's thread terminates
-        //m_detectionThread.Join();
-        //m_detectionThread = null;
-
-        //// Dispose the events
-        //m_deviceChangedEvent.Dispose();
-        //m_closingEvent.Dispose();
-
-        //// Clear all equipments information from the cache
-        //m_identifiedEquipments.Clear();
-      }
     }
   }
 }
