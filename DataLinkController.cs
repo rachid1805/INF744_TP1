@@ -14,9 +14,9 @@ namespace DataLinkApplication
     private string _configFile;
     private IProtocol _transmissionProtocol;
     private IProtocol _receptionProtocol;
-    private Thread _transmissionThread;        // (T1) la station émettrice
-    private Thread _receptionThread;           // (T2) la station réceptrice
-    private Thread _transmissionSupportThread; // (T3) le support de transmission
+    private Thread _transmissionSupportThread;      // (T3) le support de transmission
+    private Thread _transmissionNetworkLayerThread; // (T4) la couche réseau de transmission (Envoi de fichier)
+    private Thread _receptionNetworkLayerThread;    // (T5) la couche réseau de réception (Réception de fichier)
 
     #endregion
 
@@ -42,29 +42,28 @@ namespace DataLinkApplication
       {
         // Read the config file content
         var xmlFileReader = new XmlDataLinkConfigFileReader(_configFile);
-        if (xmlFileReader.RejectType == RejectType.Global)
-        {
-          _transmissionProtocol = new GoBacknProtocol();
-          _receptionProtocol = new GoBacknProtocol();
-        }
-        else
-        {
-          _transmissionProtocol = new SelectiveRepeatProtocol();
-          _receptionProtocol = new SelectiveRepeatProtocol();
-        }
 
         // Create the transmission support thread
         var transmissionSupport = new TransmissionSupportController();
         _transmissionSupportThread = new Thread(transmissionSupport.TransmissionSupport);
         _transmissionSupportThread.Start();
 
-        // Create the reception thread
-        _receptionThread = new Thread(_receptionProtocol.Protocol);
-        _receptionThread.Start();
-
-        // Create the transmission thread
-        _transmissionThread = new Thread(_transmissionProtocol.Protocol);
-        _transmissionThread.Start();
+        if (xmlFileReader.RejectType == RejectType.Global)
+        {
+          _transmissionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.InFile, true);
+          _receptionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.OutFile, false);
+          // Create the transmission/reception network layer threads
+          _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
+          _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
+        }
+        else
+        {
+          _transmissionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.InFile, true);
+          _receptionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.OutFile, false);
+          // Create the transmission/reception network layer threads
+          _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
+          _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
+        }
       }
       catch (Exception e)
       {
@@ -92,16 +91,6 @@ namespace DataLinkApplication
       if (_receptionProtocol != null)
       {
         ((IDisposable)_receptionProtocol).Dispose();
-      }
-      if (_transmissionThread != null)
-      {
-        _transmissionThread.Join();
-        _transmissionThread = null;
-      }
-      if (_receptionThread != null)
-      {
-        _receptionThread.Join();
-        _receptionThread = null;
       }
       if (_transmissionSupportThread != null)
       {

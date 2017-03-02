@@ -5,7 +5,7 @@
     <InFile>C:\DataLink\transmission.bin</InFile>
     <!--Nom du fichier de sortie avec le path complet-->
     <OutFile>C:\DataLink\reception.bin</OutFile>
-    <!--La taille du tampon de transmission-->
+    <!--La taille du tampon de transmission (Max 256 bytes)-->
     <WindowSize>8</WindowSize>
     <!--Global/Selective Reject (Rejet Global ou Selectif)-->
     <RejectType>Global</RejectType>

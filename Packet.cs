@@ -9,7 +9,7 @@ namespace DataLinkApplication
   {
     #region Constants
 
-    public static int MAX_PKT = 1024;
+    public static int _MAX_PKT = 1024;
 
     #endregion
 
@@ -19,7 +19,7 @@ namespace DataLinkApplication
 
     #endregion
 
-    #region Properties
+    #region Public Functions
 
     public byte[] Data
     {
@@ -29,12 +29,24 @@ namespace DataLinkApplication
       }
       set
       {
-        if (value.Length > MAX_PKT)
+        if (value.Length > _MAX_PKT)
         {
           throw new ApplicationException("Packet size is too large!");
         }
         _data = value;
       }
+    }
+
+    public static Packet CopyFrom(Packet packet)
+    {
+      var newByte = new byte[packet.Data.Length];
+      for (int i = 0; i < packet.Data.Length; i++)
+      {
+        newByte[i] = packet.Data[i];
+      }
+      var newPacket = new Packet { Data = newByte };
+
+      return newPacket;
     }
 
     #endregion

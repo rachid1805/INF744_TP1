@@ -136,7 +136,7 @@ namespace DataLinkApplication
         {
           throw new ApplicationException("Unrecognized XML file format provided: WindowSize Tag Not Found!");
         }
-        WindowSize = Int32.Parse(windowSizeStr);
+        WindowSize = Byte.Parse(windowSizeStr);
 
         if (string.IsNullOrEmpty(rejectTypeStr))
         {
@@ -189,7 +189,7 @@ namespace DataLinkApplication
 
     public string InFile { get; private set; }
     public string OutFile { get; private set; }
-    public int WindowSize { get; private set; }
+    public byte WindowSize { get; private set; }
     public RejectType RejectType { get; private set; }
     public int Timeout { get; private set; }
     public int Latency { get; private set; }

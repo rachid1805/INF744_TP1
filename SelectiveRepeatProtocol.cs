@@ -1,22 +1,25 @@
-﻿namespace DataLinkApplication
-{
-  public class SelectiveRepeatProtocol : ProtocolBase, IProtocol
-  {
-    #region Implementation of IProtocol
+﻿using System.Threading;
 
-    public void Protocol()
+namespace DataLinkApplication
+{
+  public class SelectiveRepeatProtocol : ProtocolBase
+  {
+    #region Constructor
+
+    public SelectiveRepeatProtocol(byte windowSize, int timeout, string fileName, bool inFile)
+      :base(windowSize, timeout, fileName, inFile)
+    {
+      _communicationThread = new Thread(Protocol);
+      _communicationThread.Start();
+    }
+
+    #endregion
+
+    #region Protected Functions
+
+    protected override void DoProtocol()
     {
       // Traduire le protocol 6 dans le livre de Tanenbaum en C#
-    }
-
-    public void FromNetworkLayer(Packet packet)
-    {
-      // Un packet pour l'émetteur (lu du fichier d'entrée)
-    }
-
-    public void FromPhysicalLayer(Frame frame)
-    {
-      // Une trame pour le récepteur (à écrire dans le fichier de sortie)
     }
 
     #endregion

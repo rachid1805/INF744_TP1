@@ -9,7 +9,7 @@ namespace DataLinkApplication
   public interface IProtocol
   {
     void Protocol();
-    void FromNetworkLayer(Packet packet);
-    void FromPhysicalLayer(Frame frame);
+    void StartTransfer();
+    void ReceiveTransfer();
   }
 }
