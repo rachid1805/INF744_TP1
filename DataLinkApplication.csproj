@@ -48,6 +48,7 @@
     <Compile Include="GoBacknProtocol.cs" />
     <Compile Include="DataLinkController.cs" />
     <Compile Include="DataLinkDefinitions.cs" />
+    <Compile Include="Hamming.cs" />
     <Compile Include="IProtocol.cs" />
     <Compile Include="ITransmissionSupport.cs" />
     <Compile Include="Packet.cs" />

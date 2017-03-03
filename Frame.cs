@@ -13,8 +13,9 @@ namespace DataLinkApplication
     public byte Seq { get; set; }
     public byte Ack { get; set; }
     public Packet Info { get; set; }
+    public byte Hamming;
 
-    public static Frame CopyFrom(Frame frame)
+        public static Frame CopyFrom(Frame frame)
     {
       var newFrame = new Frame
       {
