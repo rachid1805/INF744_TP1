@@ -10,8 +10,8 @@ namespace DataLinkApplication
   {
     #region Attributes
 
-    private bool _pretEmmetreSource;
-    private bool _pretEmmetreDestination;
+    private bool _pretEmettreSource;
+    private bool _pretEmettreDestination;
     private bool _donneeRecueSource;
     private bool _donneeRecueDestination;
     private Frame _envoiSource;
@@ -27,8 +27,10 @@ namespace DataLinkApplication
     public TransmissionSupport(int latency)
     {
       _latency = latency;
-      _pretEmmetreSource = true;
+      _pretEmettreSource = true;
       _donneeRecueDestination = false;
+      _pretEmettreDestination = true;
+      _donneeRecueSource = false;
     }
 
     #endregion
@@ -41,12 +43,12 @@ namespace DataLinkApplication
 
       while (running)
       {
-        if (!_pretEmmetreSource && !_donneeRecueDestination)
+        if (!_pretEmettreSource && !_donneeRecueDestination)
         {
           Console.WriteLine(string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
             _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
           _receptionDestination = Frame.CopyFrom(_envoiSource);
-          _pretEmmetreSource = true;
+          _pretEmettreSource = true;
 
           // Simuler la latence du lien physique
           Thread.Sleep(_latency);
@@ -54,24 +56,37 @@ namespace DataLinkApplication
           // New packet for the destination
           _donneeRecueDestination = true;
         }
+        if (!_pretEmettreDestination && !_donneeRecueSource)
+        {
+          Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
+            Thread.CurrentThread.ManagedThreadId));
+          _receptionSource = Frame.CopyFrom(_envoiDestination);
+          _pretEmettreDestination = true;
+
+          // Simuler la latence du lien physique
+          Thread.Sleep(_latency);
+
+          // New Ack for the source
+          _donneeRecueSource = true;
+        }
       }
     }
 
-    public bool ReadyToSend
+    public bool ReadyToSendData
     {
       get
       {
-        return _pretEmmetreSource;
+        return _pretEmettreSource;
       }
     }
 
-    public void SendFrame(Frame frame)
+    public void SendData(Frame frame)
     {
       _envoiSource = Frame.CopyFrom(frame);
-      _pretEmmetreSource = false;
+      _pretEmettreSource = false;
     }
 
-    public bool ReadyToReceive
+    public bool ReadyToReceiveData
     {
       get
       {
@@ -79,10 +94,40 @@ namespace DataLinkApplication
       }
     }
 
-    public Frame ReceiveFrame()
+    public Frame ReceiveData()
     {
       var frame = Frame.CopyFrom(_receptionDestination);
       _donneeRecueDestination = false;
+
+      return frame;
+    }
+
+    public bool ReadyToSendAck
+    {
+      get
+      {
+        return _pretEmettreDestination;
+      }
+    }
+
+    public void SendAck(Frame frame)
+    {
+      _envoiDestination = Frame.CopyFrom(frame);
+      _pretEmettreDestination = false;
+    }
+
+    public bool ReadyToReceiveAck
+    {
+      get
+      {
+        return _donneeRecueSource;
+      }
+    }
+
+    public Frame ReceiveAck()
+    {
+      var frame = Frame.CopyFrom(_receptionSource);
+      _donneeRecueSource = false;
 
       return frame;
     }

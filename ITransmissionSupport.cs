@@ -8,9 +8,17 @@ namespace DataLinkApplication
   public interface ITransmissionSupport
   {
     void PhysicalLayer();
-    bool ReadyToSend { get; }
-    void SendFrame(Frame frame);
-    bool ReadyToReceive { get; }
-    Frame ReceiveFrame();
+
+    // Data
+    bool ReadyToSendData { get; }
+    void SendData(Frame frame);
+    bool ReadyToReceiveData { get; }
+    Frame ReceiveData();
+
+    // Ack
+    bool ReadyToSendAck { get; }
+    void SendAck(Frame frame);
+    bool ReadyToReceiveAck { get; }
+    Frame ReceiveAck();
   }
 }

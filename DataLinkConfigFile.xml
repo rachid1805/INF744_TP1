@@ -10,7 +10,7 @@
     <!--Global/Selective Reject (Rejet Global ou Selectif)-->
     <RejectType>Global</RejectType>
     <!--Le timeout de la station de transmission en ms-->
-    <Timeout>30</Timeout>
+    <Timeout>1000</Timeout>
     <!--La latence de transmission en ms entre la station émettrice et la station réceptrice-->
     <Latency>10</Latency>
     <!--La probabilité des erreurs à introduire dans les trames en % (10% => 1 trame sur 10 est en erreur)-->

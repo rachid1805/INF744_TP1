@@ -46,8 +46,9 @@ namespace DataLinkApplication
         // Create the transmission support thread
         var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency);
         _transmissionSupportThread = new Thread(transmissionSupport.PhysicalLayer);
-        Console.WriteLine("Starting the physical layer thread (Support de transmission)");
         _transmissionSupportThread.Start();
+        Console.WriteLine(string.Format("Started the physical layer thread (Thread Id: {0})",
+          _transmissionSupportThread.ManagedThreadId));
 
         if (xmlFileReader.RejectType == RejectType.Global)
         {
@@ -58,10 +59,12 @@ namespace DataLinkApplication
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
-          Console.WriteLine("Starting the network layer thread of the transmitter");
           _transmissionNetworkLayerThread.Start();
-          Console.WriteLine("Starting the network layer thread of the receiver");
           _receptionNetworkLayerThread.Start();
+          Console.WriteLine(string.Format("Started the network layer thread of the transmitter (Thread Id: {0})",
+            _transmissionNetworkLayerThread.ManagedThreadId));
+          Console.WriteLine(string.Format("Started the network layer thread of the receiver (Thread Id: {0})",
+            _receptionNetworkLayerThread.ManagedThreadId));
         }
         else
         {
@@ -72,10 +75,12 @@ namespace DataLinkApplication
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
-          Console.WriteLine("Starting the network layer thread of the transmitter");
           _transmissionNetworkLayerThread.Start();
-          Console.WriteLine("Starting the network layer thread of the receiver");
           _receptionNetworkLayerThread.Start();
+          Console.WriteLine(string.Format("Started the network layer thread of the transmitter (Thread Id: {0})",
+            _transmissionNetworkLayerThread.ManagedThreadId));
+          Console.WriteLine(string.Format("Started the network layer thread of the receiver (Thread Id: {0})",
+            _receptionNetworkLayerThread.ManagedThreadId));
         }
       }
       catch (Exception e)
