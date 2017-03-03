@@ -49,12 +49,13 @@
     <Compile Include="DataLinkController.cs" />
     <Compile Include="DataLinkDefinitions.cs" />
     <Compile Include="IProtocol.cs" />
+    <Compile Include="ITransmissionSupport.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProtocolBase.cs" />
     <Compile Include="SelectiveRepeatProtocol.cs" />
-    <Compile Include="TransmissionSupportController.cs" />
+    <Compile Include="TransmissionSupport.cs" />
     <Compile Include="XmlDataLinkConfigFileReader.cs" />
   </ItemGroup>
   <ItemGroup>

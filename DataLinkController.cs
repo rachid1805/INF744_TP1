@@ -44,8 +44,8 @@ namespace DataLinkApplication
         var xmlFileReader = new XmlDataLinkConfigFileReader(_configFile);
 
         // Create the transmission support thread
-        var transmissionSupport = new TransmissionSupportController();
-        _transmissionSupportThread = new Thread(transmissionSupport.TransmissionSupport);
+        var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency);
+        _transmissionSupportThread = new Thread(transmissionSupport.PhysicalLayer);
         _transmissionSupportThread.Start();
 
         if (xmlFileReader.RejectType == RejectType.Global)
