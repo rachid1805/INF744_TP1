@@ -15,14 +15,15 @@ namespace DataLinkApplication
     public Packet Info { get; set; }
     public byte Hamming;
 
-        public static Frame CopyFrom(Frame frame)
+    public static Frame CopyFrom(Frame frame)
     {
       var newFrame = new Frame
       {
         Kind = frame.Kind,
         Seq = frame.Seq,
         Ack = frame.Ack,
-        Info = Packet.CopyFrom(frame.Info)
+        Info = Packet.CopyFrom(frame.Info),
+        Hamming = frame.Hamming
       };
 
       return newFrame;
