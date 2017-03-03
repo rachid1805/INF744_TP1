@@ -14,6 +14,7 @@ namespace DataLinkApplication
     #region Attributes
 
     protected static byte _MAX_SEQ;
+    private const byte _LAST_PACKET = 1;
     protected const byte _STOP_RUNNING = 0;
     protected const byte _NETWORK_LAYER_READY = 1;
     protected const byte _FRAME_ARRIVAL = 2;
@@ -50,21 +51,25 @@ namespace DataLinkApplication
     private bool _networkLayerEnable;
     private Packet _packetRead;
     private Packet _packetWrite;
-    private Frame _frame;
     protected readonly byte _threadId;
     private readonly string _fileName;
+    private readonly ITransmissionSupport _transmissionSupport;
 
     #endregion
 
     #region Constructor
 
-    protected ProtocolBase(byte windowSize, int timeout, string fileName, bool inFile)
+    protected ProtocolBase(byte windowSize, int timeout, string fileName, bool inFile, ITransmissionSupport transmissionSupport)
     {
+      _transmissionSupport = transmissionSupport;
       _MAX_SEQ = (byte) (windowSize - 1);
       _timeout = timeout;
       _fileName = fileName;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
       _threadId = (byte) (inFile ? 0 : 1);
+
+      // Creates events that trigger the thread changing
+      CreateMandatoryEvents();
     }
 
     #endregion
@@ -73,9 +78,6 @@ namespace DataLinkApplication
 
     public void Protocol()
     {
-      // Creates events that trigger the thread changing
-      CreateMandatoryEvents();
-
       // Call specialized function
       DoProtocol();
     }
@@ -95,7 +97,8 @@ namespace DataLinkApplication
               var oneByte = inFile.ReadByte();
               _packetRead = new Packet { Data = new byte[1] { (byte)oneByte } };
               // Send the packet to the data layer
-              _networkLayerReadyEvents[_threadId].Set();
+              var netEvent = _networkLayerReadyEvents[_threadId];
+              netEvent.Set();
               // Wait the packet to be read by the data layer
               _waitingReadEvents[_threadId].WaitOne();
             }
@@ -127,7 +130,14 @@ namespace DataLinkApplication
             // Received one packet
             outFile.WriteByte(_packetWrite.Data[0]);
 
-            if (index == 1)
+            // Send the (faked) Ack
+            _packetRead = new Packet { Data = new byte[1] { 0 } };
+            // Send the packet to the data layer
+            _networkLayerReadyEvents[_threadId].Set();
+            // Wait the packet to be read by the data layer
+            _waitingReadEvents[_threadId].WaitOne();
+
+            if (index == _LAST_PACKET)
             {
               // The last packet
               running = false;
@@ -207,6 +217,7 @@ namespace DataLinkApplication
     {
       // Un packet pour l'émetteur (lu du fichier d'entrée)
       var packet = Packet.CopyFrom(_packetRead);
+
       // Next packet
       _waitingReadEvents[_threadId].Set();
 
@@ -217,22 +228,35 @@ namespace DataLinkApplication
     {
       // Un packet pour le récepteur (à écrire dans le fichier de sortie)
       _packetWrite = Packet.CopyFrom(packet);
+
       // We can now write in the file
       _canWriteEvents[_threadId].Set();
     }
 
     protected Frame FromPhysicalLayer()
     {
-      return Frame.CopyFrom(_frame);
+      // Vérifier si une donnée est disponible
+      while (!_transmissionSupport.ReadyToReceive)
+      {
+        // Attendre 1ms avant de réessayer
+        Thread.Sleep(1);
+      }
+
+      // Maintenant on peut aller chercher la trame
+      return _transmissionSupport.ReceiveFrame();
     }
 
     protected void ToPhysicalLayer(Frame frame)
     {
-      // Une trame pour le récepteur (à écrire dans le fichier de sortie) ou un ack
-      _frame = Frame.CopyFrom(frame);
-
-      // TODO Vérifier si on peut ecrire dans la thread 3
-
+      // Vérifier si le support de transmission n'est pas occupé
+      while (!_transmissionSupport.ReadyToSend)
+      {
+        // Attendre 1ms avant de réessayer
+        Thread.Sleep(1);
+      }
+      // Maintenant on peut envoyer
+      _transmissionSupport.SendFrame(frame);
+      
       // Notify the physical layer of the reception thread
       _frameArrivalEvents[(byte) (1 - _threadId)].Set();
     }
@@ -241,25 +265,25 @@ namespace DataLinkApplication
     {
       _closingEventTh0 = new AutoResetEvent(false);
       _closingEventTh1 = new AutoResetEvent(false);
-      _closingEvents = new Dictionary<byte, AutoResetEvent>(2) {{0, _closingEventTh0}, {0, _closingEventTh1}};
+      _closingEvents = new Dictionary<byte, AutoResetEvent>(2) {{0, _closingEventTh0}, {1, _closingEventTh1}};
       _networkLayerReadyEventTh0 = new AutoResetEvent(false);
       _networkLayerReadyEventTh1 = new AutoResetEvent(false);
-      _networkLayerReadyEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _networkLayerReadyEventTh0 }, { 0, _networkLayerReadyEventTh1 } };
+      _networkLayerReadyEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _networkLayerReadyEventTh0 }, { 1, _networkLayerReadyEventTh1 } };
       _frameArrivalEventTh0 = new AutoResetEvent(false);
       _frameArrivalEventTh1 = new AutoResetEvent(false);
-      _frameArrivalEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameArrivalEventTh0 }, { 0, _frameArrivalEventTh1 } };
+      _frameArrivalEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameArrivalEventTh0 }, { 1, _frameArrivalEventTh1 } };
       _frameErrorEventTh0 = new AutoResetEvent(false);
       _frameErrorEventTh1 = new AutoResetEvent(false);
-      _frameErrorEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameErrorEventTh0 }, { 0, _frameErrorEventTh1 } };
+      _frameErrorEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameErrorEventTh0 }, { 1, _frameErrorEventTh1 } };
       _frameTimeoutEventTh0 = new AutoResetEvent(false);
       _frameTimeoutEventTh1 = new AutoResetEvent(false);
-      _frameTimeoutEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameTimeoutEventTh0 }, { 0, _frameTimeoutEventTh1 } };
+      _frameTimeoutEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameTimeoutEventTh0 }, { 1, _frameTimeoutEventTh1 } };
       _waitingReadEventTh0 = new AutoResetEvent(false);
       _waitingReadEventTh1 = new AutoResetEvent(false);
-      _waitingReadEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _waitingReadEventTh0 }, { 0, _waitingReadEventTh1 } };
+      _waitingReadEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _waitingReadEventTh0 }, { 1, _waitingReadEventTh1 } };
       _canWriteEventTh0 = new AutoResetEvent(false);
       _canWriteEventTh1 = new AutoResetEvent(false);
-      _canWriteEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _canWriteEventTh0 }, { 0, _canWriteEventTh1 } };
+      _canWriteEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _canWriteEventTh0 }, { 1, _canWriteEventTh1 } };
       _lastPacketEvent = new AutoResetEvent(false);
     }
 

@@ -46,23 +46,36 @@ namespace DataLinkApplication
         // Create the transmission support thread
         var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency);
         _transmissionSupportThread = new Thread(transmissionSupport.PhysicalLayer);
+        Console.WriteLine("Starting the physical layer thread (T3) (Support de transmission)");
         _transmissionSupportThread.Start();
 
         if (xmlFileReader.RejectType == RejectType.Global)
         {
-          _transmissionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.InFile, true);
-          _receptionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.OutFile, false);
+          _transmissionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
+            xmlFileReader.InFile, true, transmissionSupport);
+          _receptionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
+            xmlFileReader.OutFile, false, transmissionSupport);
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
+          Console.WriteLine("Starting the network layer thread (T4) of the transmitter");
+          _transmissionNetworkLayerThread.Start();
+          Console.WriteLine("Starting the network layer thread (T5) of the receiver");
+          _receptionNetworkLayerThread.Start();
         }
         else
         {
-          _transmissionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.InFile, true);
-          _receptionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout, xmlFileReader.OutFile, false);
+          _transmissionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
+            xmlFileReader.InFile, true, transmissionSupport);
+          _receptionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
+            xmlFileReader.OutFile, false, transmissionSupport);
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
+          Console.WriteLine("Starting the network layer thread of the transmitter");
+          _transmissionNetworkLayerThread.Start();
+          Console.WriteLine("Starting the network layer thread of the receiver");
+          _receptionNetworkLayerThread.Start();
         }
       }
       catch (Exception e)
