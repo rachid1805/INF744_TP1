@@ -2,9 +2,9 @@
 <Document Title="Fichier de commandes pour l'application" Version="1.0">
   <DataLinkCommands>
     <!--Nom du fichier d'entrée avec le path complet-->
-    <InFile>C:\DataLink\transmission.bin</InFile>
+    <InFile>HwConfiguration8xxV2.ini</InFile>
     <!--Nom du fichier de sortie avec le path complet-->
-    <OutFile>C:\DataLink\reception.bin</OutFile>
+    <OutFile>CopyOfHwConfiguration8xxV2.ini</OutFile>
     <!--La taille du tampon de transmission (Max 256 bytes)-->
     <WindowSize>8</WindowSize>
     <!--Global/Selective Reject (Rejet Global ou Selectif)-->

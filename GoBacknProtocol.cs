@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Threading;
 
 namespace DataLinkApplication
@@ -7,10 +8,11 @@ namespace DataLinkApplication
   {
     #region Constructor
 
-    public GoBacknProtocol(byte windowSize, int timeout, string fileName, bool inFile)
-      :base(windowSize, timeout, fileName, inFile)
+    public GoBacknProtocol(byte windowSize, int timeout, string fileName, bool inFile, ITransmissionSupport transmissionSupport)
+      :base(windowSize, timeout, fileName, inFile, transmissionSupport)
     {
       _communicationThread = new Thread(Protocol);
+      Console.WriteLine(string.Format("Starting the data link layer thread {0}", inFile ? "(T1) of the transmitter" : "(T2) of the receiver"));
       _communicationThread.Start();
     }
 
