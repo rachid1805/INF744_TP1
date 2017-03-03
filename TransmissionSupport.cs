@@ -37,16 +37,23 @@ namespace DataLinkApplication
 
     public void PhysicalLayer()
     {
-      if (!_pretEmmetreSource && !_donneeRecueDestination)
-      {
-        _receptionDestination = Frame.CopyFrom(_envoiSource);
-        _pretEmmetreSource = true;
-        
-        // Simuler la latence du lien physique
-        Thread.Sleep(_latency);
+      var running = true;
 
-        // New packet for the destination
-        _donneeRecueDestination = true;
+      while (running)
+      {
+        if (!_pretEmmetreSource && !_donneeRecueDestination)
+        {
+          Console.WriteLine(string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
+            _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+          _receptionDestination = Frame.CopyFrom(_envoiSource);
+          _pretEmmetreSource = true;
+
+          // Simuler la latence du lien physique
+          Thread.Sleep(_latency);
+
+          // New packet for the destination
+          _donneeRecueDestination = true;
+        }
       }
     }
 

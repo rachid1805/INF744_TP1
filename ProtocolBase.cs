@@ -21,30 +21,29 @@ namespace DataLinkApplication
     protected const byte _CKSUM_ERROR = 3;
     protected const byte _TIMEOUT = 4;
     protected const byte _ACK_TIMEOUT = 5;
-    private AutoResetEvent _networkLayerReadyEventTh0;
-    private AutoResetEvent _networkLayerReadyEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _networkLayerReadyEvents;
-    private AutoResetEvent _frameArrivalEventTh0;
-    private AutoResetEvent _frameArrivalEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _frameArrivalEvents;
-    private AutoResetEvent _frameErrorEventTh0;
-    private AutoResetEvent _frameErrorEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _frameErrorEvents;
-    private AutoResetEvent _frameTimeoutEventTh0;
-    private AutoResetEvent _frameTimeoutEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _frameTimeoutEvents;
-    private AutoResetEvent _ackTimeoutEvent;
-    private AutoResetEvent _closingEventTh0;
-    private AutoResetEvent _closingEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _closingEvents;
-    private AutoResetEvent _waitingReadEventTh0;
-    private AutoResetEvent _waitingReadEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _waitingReadEvents;
-    private AutoResetEvent _canWriteEventTh0;
-    private AutoResetEvent _canWriteEventTh1;
-    protected IDictionary<byte, AutoResetEvent> _canWriteEvents;
-    private AutoResetEvent _lastPacketEvent;
-    protected WaitHandle[] _waitHandles;
+    private static AutoResetEvent _networkLayerReadyEventTh0;
+    private static AutoResetEvent _networkLayerReadyEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _networkLayerReadyEvents;
+    private static AutoResetEvent _frameArrivalEventTh0;
+    private static AutoResetEvent _frameArrivalEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _frameArrivalEvents;
+    private static AutoResetEvent _frameErrorEventTh0;
+    private static AutoResetEvent _frameErrorEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _frameErrorEvents;
+    private static AutoResetEvent _frameTimeoutEventTh0;
+    private static AutoResetEvent _frameTimeoutEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _frameTimeoutEvents;
+    private static AutoResetEvent _ackTimeoutEvent;
+    private static AutoResetEvent _closingEventTh0;
+    private static AutoResetEvent _closingEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _closingEvents;
+    private static AutoResetEvent _waitingReadEventTh0;
+    private static AutoResetEvent _waitingReadEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _waitingReadEvents;
+    private static AutoResetEvent _canWriteEventTh0;
+    private static AutoResetEvent _canWriteEventTh1;
+    protected static IDictionary<byte, AutoResetEvent> _canWriteEvents;
+    private static AutoResetEvent _lastPacketEvent;
     protected Thread _communicationThread; // (T1) et (T2) : les stations émettrice et réceptrice
     private readonly IDictionary<int, System.Timers.Timer> _timers;
     private readonly int _timeout; // en ms
@@ -97,8 +96,7 @@ namespace DataLinkApplication
               var oneByte = inFile.ReadByte();
               _packetRead = new Packet { Data = new byte[1] { (byte)oneByte } };
               // Send the packet to the data layer
-              var netEvent = _networkLayerReadyEvents[_threadId];
-              netEvent.Set();
+              _networkLayerReadyEvents[_threadId].Set();
               // Wait the packet to be read by the data layer
               _waitingReadEvents[_threadId].WaitOne();
             }
@@ -258,7 +256,8 @@ namespace DataLinkApplication
       _transmissionSupport.SendFrame(frame);
       
       // Notify the physical layer of the reception thread
-      _frameArrivalEvents[(byte) (1 - _threadId)].Set();
+      var otherThread = (1 - _threadId);
+      _frameArrivalEvents[(byte)otherThread].Set();
     }
 
     protected void CreateMandatoryEvents()

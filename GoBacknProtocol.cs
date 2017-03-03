@@ -12,7 +12,7 @@ namespace DataLinkApplication
       :base(windowSize, timeout, fileName, inFile, transmissionSupport)
     {
       _communicationThread = new Thread(Protocol);
-      Console.WriteLine(string.Format("Starting the data link layer thread {0}", inFile ? "(T1) of the transmitter" : "(T2) of the receiver"));
+      Console.WriteLine(string.Format("Starting the data link layer thread of the {0}", inFile ? "transmitter" : "receiver"));
       _communicationThread.Start();
     }
 
@@ -29,7 +29,7 @@ namespace DataLinkApplication
       byte nbBuffered = 0;      /* number of output buffers currently in use */
 
       // Creates events that trigger the thread changing
-      _waitHandles = new WaitHandle[]
+      var waitHandles = new WaitHandle[]
       {
         _closingEvents[_threadId], _networkLayerReadyEvents[_threadId], _frameArrivalEvents[_threadId],
         _frameErrorEvents[_threadId], _frameTimeoutEvents[_threadId]
@@ -42,7 +42,7 @@ namespace DataLinkApplication
       while (running)
       {
         // Wait trigger events to activate the thread action
-        var index = WaitHandle.WaitAny(_waitHandles);
+        var index = WaitHandle.WaitAny(waitHandles);
 
         // Execute the task related to the event raised
         switch (index)
@@ -58,6 +58,8 @@ namespace DataLinkApplication
             // Fetch new packet
             buffer[nextFrameToSend] = FromNetworkLayer();
             nbBuffered++; /* expand the sender’s window */
+            Console.WriteLine(string.Format("New packet buffer 0x{0:X} from Network layer of {1} (Thread Id: {2})",
+              buffer[nextFrameToSend].Data[0], (_threadId == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
             SendData(nextFrameToSend, frameExpected, buffer); /* transmit the frame */
             nextFrameToSend = Inc(nextFrameToSend); /* advance sender’s upper window edge */
             break;
@@ -66,6 +68,8 @@ namespace DataLinkApplication
             // In our case, a new packet to write to the output file or received an ack
             // get incoming frame from physical layer
             var r = FromPhysicalLayer();  /* scratch variable */
+            Console.WriteLine(string.Format("New frame buffer 0x{0:X} from physiacl layer of {1} (Thread Id: {2})",
+              r.Info.Data[0], (_threadId == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
             if (r.Seq == frameExpected)
             {
               // Frames are accepted only in order.
