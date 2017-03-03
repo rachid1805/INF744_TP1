@@ -45,11 +45,11 @@ namespace DataLinkApplication
         // Execute the task related to the event raised
         switch (index)
         {
-          case 0:
+          case _STOP_RUNNING:
             // Received the closing event (_closingEvent)
             running = false;
             break;
-          case 1:
+          case _NETWORK_LAYER_READY:
             // The network layer has a packet to send (_networkLayerReadyEvent)
             // In our case, a new packet read from the input file
             // Accept, save, and transmit a new frame.
@@ -59,7 +59,7 @@ namespace DataLinkApplication
             SendData(nextFrameToSend, frameExpected, buffer); /* transmit the frame */
             nextFrameToSend = Inc(nextFrameToSend); /* advance sender’s upper window edge */
             break;
-          case 2:
+          case _FRAME_ARRIVAL:
             // A data or control frame has arrived (_frameArrivalEvent)
             // In our case, a new packet to write to the output file or received an ack
             // get incoming frame from physical layer
@@ -79,10 +79,10 @@ namespace DataLinkApplication
               ackExpected = Inc(ackExpected); /* contract sender’s window */
             }
             break;
-          case 3:
+          case _CKSUM_ERROR:
             // Just ignore bad frames (_frameErrorEvent)
             break;
-          case 4:
+          case _TIMEOUT:
             // Trouble; retransmit all outstanding frames (_frameTimeoutEvent)
             nextFrameToSend = ackExpected; /* start retransmitting here */
             for (byte i = 1; i <= nbBuffered; i++)

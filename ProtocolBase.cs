@@ -14,6 +14,12 @@ namespace DataLinkApplication
     #region Attributes
 
     protected static byte _MAX_SEQ;
+    protected const byte _STOP_RUNNING = 0;
+    protected const byte _NETWORK_LAYER_READY = 1;
+    protected const byte _FRAME_ARRIVAL = 2;
+    protected const byte _CKSUM_ERROR = 3;
+    protected const byte _TIMEOUT = 4;
+    protected const byte _ACK_TIMEOUT = 5;
     private AutoResetEvent _networkLayerReadyEventTh0;
     private AutoResetEvent _networkLayerReadyEventTh1;
     protected IDictionary<byte, AutoResetEvent> _networkLayerReadyEvents;
