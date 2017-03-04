@@ -19,6 +19,7 @@ namespace DataLinkApplication
     private Frame _receptionSource;
     private Frame _receptionDestination;
     private readonly int _latency;
+    private static bool _running;
 
     #endregion
 
@@ -37,11 +38,11 @@ namespace DataLinkApplication
 
     #region Implementation of ITransmissionSupport
 
-    public void PhysicalLayer()
+    public void StartPhysicalLayer()
     {
-      var running = true;
+      _running = true;
 
-      while (running)
+      while (_running)
       {
         if (!_pretEmettreSource && !_donneeRecueDestination)
         {
@@ -70,6 +71,11 @@ namespace DataLinkApplication
           _donneeRecueSource = true;
         }
       }
+    }
+
+    public void StopPhysicalLayer()
+    {
+      _running = false;
     }
 
     public bool ReadyToSendData

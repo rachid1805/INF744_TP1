@@ -7,7 +7,8 @@ namespace DataLinkApplication
 {
   public interface ITransmissionSupport
   {
-    void PhysicalLayer();
+    void StartPhysicalLayer();
+    void StopPhysicalLayer();
 
     // Data
     bool ReadyToSendData { get; }

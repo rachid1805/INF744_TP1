@@ -53,6 +53,8 @@ namespace DataLinkApplication
     protected readonly byte _threadId;
     private readonly string _fileName;
     private readonly ITransmissionSupport _transmissionSupport;
+    private static byte _remainingPacket = 0;
+    private static object _lock;
 
     #endregion
 
@@ -67,6 +69,7 @@ namespace DataLinkApplication
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
       _threadId = (byte) (inFile ? 0 : 1);
+      _lock = new object();
 
       // Creates events that trigger the thread changing
       CreateMandatoryEvents();
@@ -96,6 +99,10 @@ namespace DataLinkApplication
               {
                 var oneByte = inFile.ReadByte();
                 _packetRead = new Packet { Data = new byte[1] { (byte)oneByte } };
+                lock (_lock)
+                {
+                  _remainingPacket++;
+                }
                 Console.WriteLine(string.Format("Read byte 0x{0:X} from input file {1}", oneByte, _fileName));
                 // Send the packet to the data layer
                 _networkLayerReadyEvents[_threadId].Set();
@@ -106,8 +113,13 @@ namespace DataLinkApplication
             }
             // No packet to read from the file, trigger the last packet
             Console.WriteLine(string.Format("--- The last byte from the input file ---"));
+
+            while (_remainingPacket > 0)
+            {
+              Thread.Sleep(1);
+            }
+            // The last packet
             _lastPacketEvent.Set();
-            _closingEvents[_threadId].Set();
           }
         }
         catch (FileNotFoundException e)
@@ -134,25 +146,36 @@ namespace DataLinkApplication
               // Wait trigger events to activate the thread action
               var index = WaitHandle.WaitAny(waitHandles);
 
-              // Received one packet
-              Console.WriteLine(string.Format("Write byte 0x{0:X} to output file {1}", _packetWrite.Data[0], _fileName));
-              outFile.WriteByte(_packetWrite.Data[0]);
+              if (index != _LAST_PACKET)
+              {
+                // Received one packet
+                Console.WriteLine(string.Format("Write byte 0x{0:X} to output file {1}", _packetWrite.Data[0], _fileName));
+                outFile.WriteByte(_packetWrite.Data[0]);
+                lock (_lock)
+                {
+                  _remainingPacket--;
+                }
 
-              // Send the (faked) Ack
-              _packetRead = new Packet { Data = new byte[1] { 0 } };
-              // Send the packet to the data layer
-              _networkLayerReadyEvents[_threadId].Set();
-              // Wait the packet to be read by the data layer
-              _waitingReadEvents[_threadId].WaitOne();
-
-              if (index == _LAST_PACKET)
+                // Send the (faked) Ack
+                _packetRead = new Packet { Data = new byte[1] { 0 } };
+                // Send the packet to the data layer
+                _networkLayerReadyEvents[_threadId].Set();
+                // Wait the packet to be read by the data layer
+                _waitingReadEvents[_threadId].WaitOne();
+              }
+              else
               {
                 // The last packet
                 running = false;
               }
             }
             Console.WriteLine("--- Transmission completed and the output file closed ---");
+            // Terminate the reception thread
             _closingEvents[_threadId].Set();
+            // Terminate the transmission thread
+            _closingEvents[(byte) (1 - _threadId)].Set();
+            // Terminate the physical layer
+            _transmissionSupport.StopPhysicalLayer();
           }
         }
         catch (Exception e)

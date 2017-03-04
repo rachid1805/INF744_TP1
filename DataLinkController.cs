@@ -45,7 +45,7 @@ namespace DataLinkApplication
 
         // Create the transmission support thread
         var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency);
-        _transmissionSupportThread = new Thread(transmissionSupport.PhysicalLayer);
+        _transmissionSupportThread = new Thread(transmissionSupport.StartPhysicalLayer);
         _transmissionSupportThread.Start();
         Console.WriteLine(string.Format("Started the physical layer thread (Thread Id: {0})",
           _transmissionSupportThread.ManagedThreadId));
@@ -88,6 +88,13 @@ namespace DataLinkApplication
         Console.WriteLine(e.ToString());
         return 1;
       }
+
+      Console.WriteLine("");
+      Console.WriteLine("*****************************************");
+      Console.WriteLine("*********** Press ESC to stop ***********");
+      Console.WriteLine("*****************************************");
+      Console.WriteLine("");
+      Console.ReadKey();
 
       return 0;
     }
