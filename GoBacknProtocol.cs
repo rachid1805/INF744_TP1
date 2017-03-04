@@ -72,7 +72,11 @@ namespace DataLinkApplication
             // A data or control frame has arrived (_frameArrivalEvent)
             // In our case, a new packet to write to the output file or received an ack
             // get incoming frame from physical layer
-            var r = FromPhysicalLayer();  /* scratch variable */
+            //var r = FromPhysicalLayer();  /* scratch variable */
+            var a = FromPhysicalLayer();  /* scratch variable */
+            //Decode frame and correct errors using Hamming protocol
+            var r = Hamming.decodeHamming(a);
+
             if (r.Seq == frameExpected)
             {
               // Frames are accepted only in order.
@@ -130,8 +134,13 @@ namespace DataLinkApplication
         /* piggyback ack */
         Ack = (byte) ((frameExpected + _MAX_SEQ) % (_MAX_SEQ + 1))
       };
+
+      //Encode frame with Hamming protocol
+      Frame frameEncoded = Hamming.encodeHamming(frame);
+
       /* transmit the frame */
-      ToPhysicalLayer(frame);
+      //ToPhysicalLayer(frame);
+      ToPhysicalLayer(frameEncoded);
       /* start the timer running */
       StartTimer(frameNb);
     }
