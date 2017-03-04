@@ -53,7 +53,6 @@ namespace DataLinkApplication
     protected readonly byte _threadId;
     private readonly string _fileName;
     private readonly ITransmissionSupport _transmissionSupport;
-    private static object _networkLock;
 
     #endregion
 
@@ -68,7 +67,6 @@ namespace DataLinkApplication
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
       _threadId = (byte) (inFile ? 0 : 1);
-      _networkLock = new object();
 
       // Creates events that trigger the thread changing
       CreateMandatoryEvents();
@@ -94,29 +92,29 @@ namespace DataLinkApplication
           {
             while (inFile.Position != inFile.Length)
             {
-              bool networkEnable;
-              lock (_networkLock)
-              {
-                networkEnable = _networkLayerEnable;
-              }
-              if (networkEnable)
+              if (_networkLayerEnable)
               {
                 var oneByte = inFile.ReadByte();
                 _packetRead = new Packet { Data = new byte[1] { (byte)oneByte } };
+                Console.WriteLine(string.Format("Read byte 0x{0:X} from input file {1}", oneByte, _fileName));
                 // Send the packet to the data layer
                 _networkLayerReadyEvents[_threadId].Set();
                 // Wait the packet to be read by the data layer
                 _waitingReadEvents[_threadId].WaitOne();
+                Thread.Sleep(1);
               }
             }
             // No packet to read from the file, trigger the last packet
+            Console.WriteLine(string.Format("--- The last byte from the input file ---"));
             _lastPacketEvent.Set();
+            _closingEvents[_threadId].Set();
           }
         }
         catch (FileNotFoundException e)
         {
           Console.WriteLine(e.ToString());
         }
+        Console.WriteLine("**** The Network Layer of the transmission thread terminated ****");
       }
     }
 
@@ -137,6 +135,7 @@ namespace DataLinkApplication
               var index = WaitHandle.WaitAny(waitHandles);
 
               // Received one packet
+              Console.WriteLine(string.Format("Write byte 0x{0:X} to output file {1}", _packetWrite.Data[0], _fileName));
               outFile.WriteByte(_packetWrite.Data[0]);
 
               // Send the (faked) Ack
@@ -152,12 +151,15 @@ namespace DataLinkApplication
                 running = false;
               }
             }
+            Console.WriteLine("--- Transmission completed and the output file closed ---");
+            _closingEvents[_threadId].Set();
           }
         }
         catch (Exception e)
         {
           Console.WriteLine(e.ToString());
         }
+        Console.WriteLine("**** The Network Layer of the reception thread terminated ****");
       }
     }
 
@@ -255,7 +257,7 @@ namespace DataLinkApplication
         // Une trame de données
         return _transmissionSupport.ReceiveData();
       }
-      if (_threadId == 0)
+      else
       {
         while (!_transmissionSupport.ReadyToReceiveAck)
         {
@@ -273,25 +275,29 @@ namespace DataLinkApplication
       if (_threadId == 0)
       {
         // Sending a data to the receiver
+        //while (!_transmissionSupport.ReadyToSendData)
+        //{
+        //  Thread.Sleep(1);
+        //}
         if (_transmissionSupport.ReadyToSendData)
         {
-          Console.WriteLine(string.Format("ToPhysicalLayer with data frame 0x{0:X}", frame.Info.Data[0]));
           _transmissionSupport.SendData(frame);
+          _frameArrivalEvents[(byte)(1 - _threadId)].Set();
         }
       }
       else
       {
         // Sending an ack to the transmitter
+        //while (!_transmissionSupport.ReadyToSendAck)
+        //{
+        //  Thread.Sleep(1);
+        //}
         if (_transmissionSupport.ReadyToSendAck)
         {
-          Console.WriteLine(string.Format("ToPhysicalLayer with ack frame 0x{0:X}", frame.Info.Data[0]));
           _transmissionSupport.SendAck(frame);
+          _frameArrivalEvents[(byte)(1 - _threadId)].Set();
         }
       }
-
-      // Notify the physical layer of the transmitter/receiver
-      Console.WriteLine(string.Format("ToPhysicalLayer raising event _frameArrivalEvents with Id = {0} and data 0x{1:X}", _threadId, frame.Info.Data[0]));
-      _frameArrivalEvents[(byte)(1 - _threadId)].Set();
     }
 
     protected void CreateMandatoryEvents()
@@ -352,18 +358,12 @@ namespace DataLinkApplication
 
     protected void EnableNetworkLayer()
     {
-      lock (_networkLock)
-      {
-        _networkLayerEnable = true;
-      }
+      _networkLayerEnable = true;
     }
 
     protected void DisableNetworkLayer()
     {
-      lock (_networkLock)
-      {
-        _networkLayerEnable = false;
-      }
+      _networkLayerEnable = false;
     }
 
 

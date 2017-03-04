@@ -58,10 +58,13 @@ namespace DataLinkApplication
             // In our case, a new packet read from the input file
             // Accept, save, and transmit a new frame.
             // Fetch new packet
-            buffer[nextFrameToSend] = FromNetworkLayer();
             nbBuffered++; /* expand the sender’s window */
-            Console.WriteLine(string.Format("New packet buffer 0x{0:X} from Network layer of {1} (Data link layer Thread Id: {2})",
-              buffer[nextFrameToSend].Data[0], (_threadId == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
+            if (nbBuffered < _MAX_SEQ)
+              EnableNetworkLayer();
+            else
+              DisableNetworkLayer();
+
+            buffer[nextFrameToSend] = FromNetworkLayer();
             SendData(nextFrameToSend, frameExpected, buffer); /* transmit the frame */
             nextFrameToSend = Inc(nextFrameToSend); /* advance sender’s upper window edge */
             break;
@@ -70,19 +73,8 @@ namespace DataLinkApplication
             // In our case, a new packet to write to the output file or received an ack
             // get incoming frame from physical layer
             var r = FromPhysicalLayer();  /* scratch variable */
-            Console.WriteLine(string.Format("New frame buffer 0x{0:X} from physical layer of {1} (Data link layer Thread Id: {2})",
-              r.Info.Data[0], (_threadId == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
             if (r.Seq == frameExpected)
             {
-              Console.WriteLine(
-                string.Format("FRAME FRAMEEEEEEEEEEEE buffer 0x{0:X} accepted. Seq = {1} and Ack = {2})",
-                  r.Info.Data[0], r.Seq, r.Ack));
-              if ((r.Seq == 0) && (r.Ack == 0))
-              {
-                Console.WriteLine(
-                  string.Format("ackExpected = {0}    r.Ack = {1}    nextFrameToSend = {2})",
-                    ackExpected, r.Ack, nextFrameToSend));
-              }
               // Frames are accepted only in order.
               ToNetworkLayer(r.Info); /* pass packet to network layer */
               frameExpected = Inc(frameExpected); /* advance lower edge of receiver’s window */
@@ -94,9 +86,6 @@ namespace DataLinkApplication
               nbBuffered--; /* one frame fewer buffered */
               StopTimer(ackExpected); /* frame arrived intact; stop timer */
               ackExpected = Inc(ackExpected); /* contract sender’s window */
-              Console.WriteLine(
-                string.Format("REMOOOOOOOOOOVE nbBbuffer {0} and ackExpected = {1})",
-                  nbBuffered, ackExpected));
             }
             break;
           case _CKSUM_ERROR:
@@ -115,17 +104,14 @@ namespace DataLinkApplication
 
         if (nbBuffered < _MAX_SEQ)
         {
-          Console.WriteLine(
-                  string.Format("ENABBBBBBBBBBBBBBBLE      nextFrameToSend = {0}      nbBuffered = {1})", nextFrameToSend, nbBuffered));
           EnableNetworkLayer();
         }
         else
         {
-          Console.WriteLine(
-                  string.Format("DISABBBBBBBBBLELEEE      nextFrameToSend = {0}      nbBuffered = {1})", nextFrameToSend, nbBuffered));
           DisableNetworkLayer();
         }
       }
+      Console.WriteLine(string.Format("**** The Data Link Layer of the {0} thread terminated ****", _threadId == 0 ? "transmission" : "reception"));
     }
 
     #endregion
