@@ -54,9 +54,24 @@ namespace DataLinkApplication
             //calculate hamming code
             byte HammingByteCalculated = calculateParity(name);
 
+            byte HammingByteCalculatedParitybit = 0;
+            byte HammingByteInputParitybit = 0;
+            //extract parity bit
+            if (HammingByteCalculated > 63)
+            {
+                HammingByteCalculatedParitybit = 1;
+                HammingByteCalculated = (byte)(HammingByteCalculated - 64);
+            }
+            if (binaryHammingInput > 63)
+            {
+                HammingByteInputParitybit = 1;
+                binaryHammingInput = (byte)(binaryHammingInput - 64);
+            }
+            byte compareHammingParity = (byte)(HammingByteCalculatedParitybit ^ HammingByteInputParitybit);
+
             byte compareHamming = (byte)(binaryHammingInput ^ HammingByteCalculated);
 
-            if (compareHamming == 0)
+            if (compareHamming == 0 && compareHammingParity == 0)
             {
                 //return frame without hamming code
                 Frame f = new Frame
@@ -69,8 +84,9 @@ namespace DataLinkApplication
                 };
                 return f;
             }
-            else
+            else if (compareHamming != 0 && compareHammingParity == 1)
             {
+                
                 string CompareHammingBits = Convert.ToString(compareHamming, 2).PadLeft(6, '0');
                 int positionError = 0;
 
@@ -89,15 +105,25 @@ namespace DataLinkApplication
                 strBuilderName.Insert(15, CompareHammingBits[4]);
                 strBuilderName.Insert(31, CompareHammingBits[5]);
 
-                //correct error
-                if (strBuilderName[positionError - 1].Equals('1'))
+                //correct error if position error smaller than array
+                if (positionError <= strBuilderName.Length)
                 {
-                    strBuilderName[positionError - 1] = '0';
+                    if (strBuilderName[positionError - 1].Equals('1'))
+                    {
+                        strBuilderName[positionError - 1] = '0';
+                    }
+                    else
+                    {
+                        strBuilderName[positionError - 1] = '1';
+                    }
                 }
                 else
                 {
-                    strBuilderName[positionError - 1] = '1';
+                    Console.WriteLine("Hamming: Correction non effectue. Trame rejetee");
+                    Frame f = null;
+                    return f;
                 }
+                
 
                 //remove correcting bits
                 strBuilderName.Remove(0, 1);
@@ -106,7 +132,7 @@ namespace DataLinkApplication
                 strBuilderName.Remove(4, 1);
                 strBuilderName.Remove(11, 1);
                 strBuilderName.Remove(26, 1);
-
+                Console.WriteLine("Hamming: Erreur de 1 bit. Correction effectuee");
                 Packet packetData = new Packet { Data = new byte[1] { (byte)Convert.ToInt32(strBuilderName.ToString(24, 8), 2) } };
                 Frame f2 = new Frame
                 {
@@ -118,6 +144,12 @@ namespace DataLinkApplication
                 };
                 return f2;
             }
+            else
+            {
+                Console.WriteLine("Hamming: Erreur de 2 bits ou plus. Trame rejetee");
+                Frame f = null;
+                return f;
+            }
         }
         private static byte calculateParity(String name)
         {
@@ -128,8 +160,9 @@ namespace DataLinkApplication
             int P3 = ((name[4] - '0') + (name[5] - '0') + (name[6] - '0') + (name[7] - '0') + (name[8] - '0') + (name[9] - '0') + (name[10] - '0') + (name[18] - '0') + (name[19] - '0') + (name[20] - '0') + (name[21] - '0') + (name[22] - '0') + (name[23] - '0') + (name[24] - '0') + (name[25] - '0')) % 2;
             int P4 = ((name[11] - '0') + (name[12] - '0') + (name[13] - '0') + (name[14] - '0') + (name[15] - '0') + (name[16] - '0') + (name[17] - '0') + (name[18] - '0') + (name[19] - '0') + (name[20] - '0') + (name[21] - '0') + (name[22] - '0') + (name[23] - '0') + (name[24] - '0') + (name[25] - '0')) % 2;
             int P5 = ((name[26] - '0') + (name[27] - '0') + (name[28] - '0') + (name[29] - '0') + (name[30] - '0') + (name[30] - '0')) % 2;
+            int ParityBit = (P0 + P1 + P2 + P3 + P4 + P5) % 2;
 
-            int HammingB = (P0 << 5) | (P1 << 4) | (P2 << 3) | (P3 << 2) | (P4 << 1) | P5;
+            int HammingB = (ParityBit << 6) | (P0 << 5) | (P1 << 4) | (P2 << 3) | (P3 << 2) | (P4 << 1) | P5;
             byte HammingByte = (byte)HammingB;
             return HammingByte;
         }

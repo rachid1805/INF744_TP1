@@ -76,6 +76,11 @@ namespace DataLinkApplication
             var a = FromPhysicalLayer();  /* scratch variable */
             //Decode frame and correct errors using Hamming protocol
             var r = Hamming.decodeHamming(a);
+            if (r == null)
+            {
+                // _frameErrorEvents[(byte)(1 - _threadId)].Set();
+                break; //reject frame
+            }
 
             if (r.Seq == frameExpected)
             {
