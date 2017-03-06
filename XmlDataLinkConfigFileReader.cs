@@ -21,7 +21,7 @@ namespace DataLinkApplication
     private const string TimeoutTag = "Timeout";
     private const string LatencyTag = "Latency";
     private const string ProbabilityErrorTag = "ProbabilityError";
-    private const string ErrorBitNumberTag = "ErrorBitNumber";
+    private const string NumberOfBitErrorsTag = "NumberOfBitErrors";
 
     #endregion
 
@@ -55,7 +55,7 @@ namespace DataLinkApplication
         var timeoutStr = string.Empty;
         var latencyStr = string.Empty;
         var probabilityErrorStr = string.Empty;
-        var errorBitNumberStr = string.Empty;
+        var numberOfBitErrorsStr = string.Empty;
 
         // Parse the file and collect required attributes and values. 
         while (xmlReader.Read())
@@ -94,8 +94,8 @@ namespace DataLinkApplication
               case ProbabilityErrorTag:
                 probabilityErrorStr = ReadValue(xmlReader);
                 break;
-              case ErrorBitNumberTag:
-                errorBitNumberStr = ReadValue(xmlReader);
+              case NumberOfBitErrorsTag:
+                numberOfBitErrorsStr = ReadValue(xmlReader);
                 break;
             }
           }
@@ -162,11 +162,11 @@ namespace DataLinkApplication
         }
         ProbabilityError = Byte.Parse(probabilityErrorStr);
 
-        if (string.IsNullOrEmpty(errorBitNumberStr))
+        if (string.IsNullOrEmpty(numberOfBitErrorsStr))
         {
           throw new ApplicationException("Unrecognized XML file format provided: ErrorBitNumber Tag Not Found!");
         }
-        ErrorBitNumber = Byte.Parse(errorBitNumberStr);
+        NumberOfBitErrors = Byte.Parse(numberOfBitErrorsStr);
       }
     }
 
@@ -194,7 +194,7 @@ namespace DataLinkApplication
     public int Timeout { get; private set; }
     public int Latency { get; private set; }
     public byte ProbabilityError { get; private set; }
-    public byte ErrorBitNumber { get; private set; }
+    public byte NumberOfBitErrors { get; private set; }
 
     #endregion
   }

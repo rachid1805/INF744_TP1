@@ -20,18 +20,24 @@ namespace DataLinkApplication
     private Frame _receptionDestination;
     private readonly int _latency;
     private static bool _running;
+    private readonly byte _frameToCorrupt;
+    private readonly byte _numberOfBitErrors;
+    private double _frameNumber;
 
     #endregion
 
     #region Constructor
 
-    public TransmissionSupport(int latency)
+    public TransmissionSupport(int latency, byte probabilityError, byte numberOfBitErrors)
     {
       _latency = latency;
+      _frameToCorrupt = (byte)(100 / probabilityError);
+      _numberOfBitErrors = numberOfBitErrors;
       _pretEmettreSource = true;
       _donneeRecueDestination = false;
       _pretEmettreDestination = true;
       _donneeRecueSource = false;
+      _frameNumber = 1;
     }
 
     #endregion
@@ -46,9 +52,20 @@ namespace DataLinkApplication
       {
         if (!_pretEmettreSource && !_donneeRecueDestination)
         {
-          Console.WriteLine(string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
-            _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
-          _receptionDestination = Frame.CopyFrom(_envoiSource);
+          if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
+          {
+            // Corrupt frame
+            Console.WriteLine(string.Format("Transmission support: corruption of frame with buffer 0x{0:X} (Thread Id: {1})",
+              _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+            _receptionDestination = Frame.CorruptFrame(_envoiSource, _numberOfBitErrors);
+          }
+          else
+          {
+            Console.WriteLine(string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
+              _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+            _receptionDestination = Frame.CopyFrom(_envoiSource);
+          }
+          _frameNumber++;
           _pretEmettreSource = true;
 
           // Simuler la latence du lien physique
@@ -59,9 +76,19 @@ namespace DataLinkApplication
         }
         if (!_pretEmettreDestination && !_donneeRecueSource)
         {
-          Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
-            Thread.CurrentThread.ManagedThreadId));
-          _receptionSource = Frame.CopyFrom(_envoiDestination);
+          if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
+          {
+            Console.WriteLine(string.Format("Transmission support: corruption of Ack (Thread Id: {0})",
+              Thread.CurrentThread.ManagedThreadId));
+            _receptionSource = Frame.CorruptFrame(_envoiDestination, _numberOfBitErrors);
+          }
+          else
+          {
+            Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
+              Thread.CurrentThread.ManagedThreadId));
+            _receptionSource = Frame.CopyFrom(_envoiDestination);
+          }
+          _frameNumber++;
           _pretEmettreDestination = true;
 
           // Simuler la latence du lien physique

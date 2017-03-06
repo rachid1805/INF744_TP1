@@ -44,7 +44,7 @@ namespace DataLinkApplication
         var xmlFileReader = new XmlDataLinkConfigFileReader(_configFile);
 
         // Create the transmission support thread
-        var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency);
+        var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency, xmlFileReader.ProbabilityError, xmlFileReader.NumberOfBitErrors);
         _transmissionSupportThread = new Thread(transmissionSupport.StartPhysicalLayer);
         _transmissionSupportThread.Start();
         Console.WriteLine(string.Format("Started the physical layer thread (Thread Id: {0})",
