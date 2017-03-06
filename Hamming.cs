@@ -71,7 +71,7 @@ namespace DataLinkApplication
             }
             else
             {
-                string CompareHammingBits = Convert.ToString(compareHamming, 2);
+                string CompareHammingBits = Convert.ToString(compareHamming, 2).PadLeft(6, '0');
                 int positionError = 0;
 
                 if (CompareHammingBits[0].Equals('1')) { positionError = positionError + 1; }
