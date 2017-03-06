@@ -33,7 +33,7 @@ namespace DataLinkApplication
     private static AutoResetEvent _frameTimeoutEventTh0;
     private static AutoResetEvent _frameTimeoutEventTh1;
     protected static IDictionary<byte, AutoResetEvent> _frameTimeoutEvents;
-    private static AutoResetEvent _ackTimeoutEvent;
+    protected static AutoResetEvent _ackTimeoutEvent;
     private static AutoResetEvent _closingEventTh0;
     private static AutoResetEvent _closingEventTh1;
     protected static IDictionary<byte, AutoResetEvent> _closingEvents;
@@ -46,6 +46,7 @@ namespace DataLinkApplication
     private static AutoResetEvent _lastPacketEvent;
     protected Thread _communicationThread; // (T1) et (T2) : les stations émettrice et réceptrice
     private readonly IDictionary<int, System.Timers.Timer> _timers;
+    protected System.Timers.Timer _timerAck;
     private readonly int _timeout; // en ms
     private bool _networkLayerEnable;
     private Packet _packetRead;
@@ -68,8 +69,10 @@ namespace DataLinkApplication
       _fileName = fileName;
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
+      _timerAck = new System.Timers.Timer(_timeout);
       _threadId = (byte) (inFile ? 0 : 1);
       _lock = new object();
+
 
       // Creates events that trigger the thread changing
       CreateMandatoryEvents();
@@ -347,6 +350,7 @@ namespace DataLinkApplication
       _canWriteEventTh1 = new AutoResetEvent(false);
       _canWriteEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _canWriteEventTh0 }, { 1, _canWriteEventTh1 } };
       _lastPacketEvent = new AutoResetEvent(false);
+      _ackTimeoutEvent = new AutoResetEvent(false);
     }
 
     protected static bool Between(byte a, byte b, byte c)
@@ -374,12 +378,26 @@ namespace DataLinkApplication
       timer.Enabled = true;
     }
 
-    protected void StopTimer(int frameNb)
+    protected void StartAckTimer()
+    {
+        //ReleaseTimer(frameNb);
+
+        //_timerAck = new System.Timers.Timer(_timeout);
+        _timerAck.Elapsed += OnTimedEventAck;
+        _timerAck.AutoReset = false;
+        _timerAck.Enabled = true;
+    }
+
+        protected void StopTimer(int frameNb)
     {
       ReleaseTimer(frameNb);
     }
+        protected void StopAckTimer()
+        {
+            _timerAck.Stop();
+        }
 
-    protected void EnableNetworkLayer()
+        protected void EnableNetworkLayer()
     {
       _networkLayerEnable = true;
     }
@@ -399,8 +417,13 @@ namespace DataLinkApplication
       Console.WriteLine("The timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
       _frameTimeoutEvents[_threadId].Set();
     }
+    private void OnTimedEventAck(Object source, ElapsedEventArgs e)
+    {
+        Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
+        _ackTimeoutEvent.Set();
+    }
 
-    private void ReleaseTimer(int frameNb)
+        private void ReleaseTimer(int frameNb)
     {
       if (_timers.ContainsKey(frameNb))
       {

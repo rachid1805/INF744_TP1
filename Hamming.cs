@@ -17,9 +17,10 @@ namespace DataLinkApplication
             string binaryKind = Convert.ToString((int)frame.Kind, 2).PadLeft(8, '0');
             string binarySeq = Convert.ToString((int)frame.Seq, 2).PadLeft(8, '0');
             string binaryAck = Convert.ToString((int)frame.Ack, 2).PadLeft(8, '0');
+            string binaryData;
             byte[] data = frame.Info.Data;
-            string binaryData = Convert.ToString((int)data[0], 2).PadLeft(8, '0');
-
+            binaryData = Convert.ToString((int)data[0], 2).PadLeft(8, '0');
+    
             //concatenate 
             string name = binaryKind + binarySeq + binaryAck + binaryData;
 
@@ -44,8 +45,12 @@ namespace DataLinkApplication
             string binaryKind = Convert.ToString((int)frame.Kind, 2).PadLeft(8, '0');
             string binarySeq = Convert.ToString((int)frame.Seq, 2).PadLeft(8, '0');
             string binaryAck = Convert.ToString((int)frame.Ack, 2).PadLeft(8, '0');
+            //string binaryData = Convert.ToString((int)data[0], 2).PadLeft(8, '0');
+            string binaryData;
+
             byte[] data = frame.Info.Data;
-            string binaryData = Convert.ToString((int)data[0], 2).PadLeft(8, '0');
+            binaryData = Convert.ToString((int)data[0], 2).PadLeft(8, '0');
+
             byte binaryHammingInput = frame.Hamming;
 
             //concatenate 
