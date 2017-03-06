@@ -55,9 +55,11 @@ namespace DataLinkApplication
           if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             // Corrupt frame
-            Console.WriteLine(string.Format("Transmission support: corruption of frame with buffer 0x{0:X} (Thread Id: {1})",
-              _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+            //Console.WriteLine(string.Format("Transmission support: corruption of frame with buffer 0x{0:X} (Thread Id: {1})",
+            //  _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
             _receptionDestination = Frame.CorruptFrame(_envoiSource, _numberOfBitErrors);
+            Console.WriteLine(string.Format("Transmission support: corruption of frame buffer 0x{0:X} to frame buffer 0x{1:X} (Thread Id: {2})",
+              _envoiSource.Info.Data[0], _receptionDestination.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
           }
           else
           {
