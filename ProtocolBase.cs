@@ -169,7 +169,7 @@ namespace DataLinkApplication
                 running = false;
               }
             }
-            Console.WriteLine("--- Transmission completed and the output file closed ---");
+            Console.WriteLine(string.Format("--- Transmission completed and the output file {0} closed ---", _fileName));
             // Terminate the reception thread
             _closingEvents[_threadId].Set();
             // Terminate the transmission thread
