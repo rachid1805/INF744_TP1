@@ -53,9 +53,9 @@ namespace DataLinkApplication
         if (xmlFileReader.RejectType == RejectType.Global)
         {
           _transmissionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
-            xmlFileReader.InFile, true, transmissionSupport);
+            xmlFileReader.InFile, ActorType.Transmitter, transmissionSupport);
           _receptionProtocol = new GoBacknProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
-            xmlFileReader.OutFile, false, transmissionSupport);
+            xmlFileReader.OutFile, ActorType.Receiver, transmissionSupport);
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);
@@ -69,9 +69,9 @@ namespace DataLinkApplication
         else
         {
           _transmissionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
-            xmlFileReader.InFile, true, transmissionSupport);
+            xmlFileReader.InFile, ActorType.Transmitter, transmissionSupport);
           _receptionProtocol = new SelectiveRepeatProtocol(xmlFileReader.WindowSize, xmlFileReader.Timeout,
-            xmlFileReader.OutFile, false, transmissionSupport);
+            xmlFileReader.OutFile, ActorType.Receiver, transmissionSupport);
           // Create the transmission/reception network layer threads
           _transmissionNetworkLayerThread = new Thread(_transmissionProtocol.StartTransfer);
           _receptionNetworkLayerThread = new Thread(_receptionProtocol.ReceiveTransfer);

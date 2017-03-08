@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Timers;
 
@@ -23,26 +20,26 @@ namespace DataLinkApplication
     protected const byte _ACK_TIMEOUT = 5;
     private static AutoResetEvent _networkLayerReadyEventTh0;
     private static AutoResetEvent _networkLayerReadyEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _networkLayerReadyEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _networkLayerReadyEvents;
     private static AutoResetEvent _frameArrivalEventTh0;
     private static AutoResetEvent _frameArrivalEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _frameArrivalEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _frameArrivalEvents;
     private static AutoResetEvent _frameErrorEventTh0;
     private static AutoResetEvent _frameErrorEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _frameErrorEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _frameErrorEvents;
     private static AutoResetEvent _frameTimeoutEventTh0;
     private static AutoResetEvent _frameTimeoutEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _frameTimeoutEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _frameTimeoutEvents;
     protected static AutoResetEvent _ackTimeoutEvent;
     private static AutoResetEvent _closingEventTh0;
     private static AutoResetEvent _closingEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _closingEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _closingEvents;
     private static AutoResetEvent _waitingReadEventTh0;
     private static AutoResetEvent _waitingReadEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _waitingReadEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _waitingReadEvents;
     private static AutoResetEvent _canWriteEventTh0;
     private static AutoResetEvent _canWriteEventTh1;
-    protected static IDictionary<byte, AutoResetEvent> _canWriteEvents;
+    protected static IDictionary<ActorType, AutoResetEvent> _canWriteEvents;
     private static AutoResetEvent _lastPacketEvent;
     protected Thread _communicationThread; // (T1) et (T2) : les stations émettrice et réceptrice
     private readonly IDictionary<int, System.Timers.Timer> _timers;
@@ -51,17 +48,17 @@ namespace DataLinkApplication
     private bool _networkLayerEnable;
     private Packet _packetRead;
     private Packet _packetWrite;
-    protected readonly byte _threadId;
+    protected readonly ActorType _actorType;
     private readonly string _fileName;
     private readonly ITransmissionSupport _transmissionSupport;
-    private static byte _remainingPacket = 0;
+    private static byte _remainingPacket;
     private static object _lock;
 
     #endregion
 
     #region Constructor
 
-    protected ProtocolBase(byte windowSize, int timeout, string fileName, bool inFile, ITransmissionSupport transmissionSupport)
+    protected ProtocolBase(byte windowSize, int timeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
     {
       _transmissionSupport = transmissionSupport;
       _MAX_SEQ = (byte) (windowSize - 1);
@@ -70,7 +67,7 @@ namespace DataLinkApplication
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
       _timerAck = new System.Timers.Timer(_timeout);
-      _threadId = (byte) (inFile ? 0 : 1);
+      _actorType = actorType;
       _lock = new object();
 
 
@@ -90,7 +87,7 @@ namespace DataLinkApplication
 
     public void StartTransfer()
     {
-      if (_threadId == 0)
+      if (_actorType == ActorType.Transmitter)
       {
         try
         {
@@ -108,14 +105,14 @@ namespace DataLinkApplication
                 }
                 Console.WriteLine(string.Format("Read byte 0x{0:X} from input file {1}", oneByte, _fileName));
                 // Send the packet to the data layer
-                _networkLayerReadyEvents[_threadId].Set();
+                _networkLayerReadyEvents[_actorType].Set();
                 // Wait the packet to be read by the data layer
-                _waitingReadEvents[_threadId].WaitOne();
+                _waitingReadEvents[_actorType].WaitOne();
                 Thread.Sleep(1);
               }
             }
             // No packet to read from the file, trigger the last packet
-            Console.WriteLine(string.Format("--- The last byte from the input file ---"));
+            Console.WriteLine(string.Format("--- No more byte to read from the input file {0} ---", _fileName));
 
             while (_remainingPacket > 0)
             {
@@ -135,13 +132,13 @@ namespace DataLinkApplication
 
     public void ReceiveTransfer()
     {
-      if (_threadId == 1)
+      if (_actorType == ActorType.Receiver)
       {
         try
         {
           using (FileStream outFile = new FileStream(_fileName, FileMode.Create, FileAccess.Write))
           {
-            var waitHandles = new WaitHandle[] { _canWriteEvents[_threadId], _lastPacketEvent };
+            var waitHandles = new WaitHandle[] { _canWriteEvents[_actorType], _lastPacketEvent };
             var running = true;
 
             while (running)
@@ -162,9 +159,9 @@ namespace DataLinkApplication
                 // Send the (faked) Ack
                 _packetRead = new Packet { Data = new byte[1] { 0 } };
                 // Send the packet to the data layer
-                _networkLayerReadyEvents[_threadId].Set();
+                _networkLayerReadyEvents[_actorType].Set();
                 // Wait the packet to be read by the data layer
-                _waitingReadEvents[_threadId].WaitOne();
+                _waitingReadEvents[_actorType].WaitOne();
               }
               else
               {
@@ -174,9 +171,10 @@ namespace DataLinkApplication
             }
             Console.WriteLine(string.Format("--- Transmission completed and the output file {0} closed ---", _fileName));
             // Terminate the reception thread
-            _closingEvents[_threadId].Set();
+            _closingEvents[_actorType].Set();
             // Terminate the transmission thread
-            _closingEvents[(byte) (1 - _threadId)].Set();
+            var otherActor = _actorType == ActorType.Transmitter ? ActorType.Receiver : ActorType.Transmitter;
+            _closingEvents[otherActor].Set();
             // Terminate the physical layer
             _transmissionSupport.StopPhysicalLayer();
           }
@@ -202,7 +200,7 @@ namespace DataLinkApplication
       if (_communicationThread != null)
       {
         // Request that the worker thread stop itself
-        _closingEvents[_threadId].Set();
+        _closingEvents[_actorType].Set();
 
         // Use the Join method to block the current thread until the object's thread terminates
         _communicationThread.Join();
@@ -257,7 +255,7 @@ namespace DataLinkApplication
       var packet = Packet.CopyFrom(_packetRead);
 
       // Next packet
-      _waitingReadEvents[_threadId].Set();
+      _waitingReadEvents[_actorType].Set();
 
       return packet;
     }
@@ -268,13 +266,13 @@ namespace DataLinkApplication
       _packetWrite = Packet.CopyFrom(packet);
 
       // We can now write in the file
-      _canWriteEvents[_threadId].Set();
+      _canWriteEvents[_actorType].Set();
     }
 
     protected Frame FromPhysicalLayer()
     {
       // Vérifier si une trame est disponible
-      if (_threadId == 1)
+      if (_actorType == ActorType.Receiver)
       {
         while (!_transmissionSupport.ReadyToReceiveData)
         {
@@ -292,13 +290,12 @@ namespace DataLinkApplication
         // Une trame Ack
         return _transmissionSupport.ReceiveAck();
       }
-
-      throw new ApplicationException(string.Format("No frame available for collecting. Thread Id {0}", _threadId));
     }
 
     protected void ToPhysicalLayer(Frame frame)
     {
-      if (_threadId == 0)
+      var otherActor = _actorType == ActorType.Transmitter ? ActorType.Receiver : ActorType.Transmitter;
+      if (_actorType == ActorType.Transmitter)
       {
         // Sending a data to the receiver
         //while (!_transmissionSupport.ReadyToSendData)
@@ -308,7 +305,7 @@ namespace DataLinkApplication
         if (_transmissionSupport.ReadyToSendData)
         {
           _transmissionSupport.SendData(frame);
-          _frameArrivalEvents[(byte)(1 - _threadId)].Set();
+          _frameArrivalEvents[otherActor].Set();
         }
       }
       else
@@ -321,7 +318,7 @@ namespace DataLinkApplication
         if (_transmissionSupport.ReadyToSendAck)
         {
           _transmissionSupport.SendAck(frame);
-          _frameArrivalEvents[(byte)(1 - _threadId)].Set();
+          _frameArrivalEvents[otherActor].Set();
         }
       }
     }
@@ -330,25 +327,53 @@ namespace DataLinkApplication
     {
       _closingEventTh0 = new AutoResetEvent(false);
       _closingEventTh1 = new AutoResetEvent(false);
-      _closingEvents = new Dictionary<byte, AutoResetEvent>(2) {{0, _closingEventTh0}, {1, _closingEventTh1}};
+      _closingEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _closingEventTh0},
+        {ActorType.Receiver, _closingEventTh1}
+      };
       _networkLayerReadyEventTh0 = new AutoResetEvent(false);
       _networkLayerReadyEventTh1 = new AutoResetEvent(false);
-      _networkLayerReadyEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _networkLayerReadyEventTh0 }, { 1, _networkLayerReadyEventTh1 } };
+      _networkLayerReadyEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _networkLayerReadyEventTh0},
+        {ActorType.Receiver, _networkLayerReadyEventTh1}
+      };
       _frameArrivalEventTh0 = new AutoResetEvent(false);
       _frameArrivalEventTh1 = new AutoResetEvent(false);
-      _frameArrivalEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameArrivalEventTh0 }, { 1, _frameArrivalEventTh1 } };
+      _frameArrivalEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _frameArrivalEventTh0},
+        {ActorType.Receiver, _frameArrivalEventTh1}
+      };
       _frameErrorEventTh0 = new AutoResetEvent(false);
       _frameErrorEventTh1 = new AutoResetEvent(false);
-      _frameErrorEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameErrorEventTh0 }, { 1, _frameErrorEventTh1 } };
+      _frameErrorEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _frameErrorEventTh0},
+        {ActorType.Receiver, _frameErrorEventTh1}
+      };
       _frameTimeoutEventTh0 = new AutoResetEvent(false);
       _frameTimeoutEventTh1 = new AutoResetEvent(false);
-      _frameTimeoutEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _frameTimeoutEventTh0 }, { 1, _frameTimeoutEventTh1 } };
+      _frameTimeoutEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _frameTimeoutEventTh0},
+        {ActorType.Receiver, _frameTimeoutEventTh1}
+      };
       _waitingReadEventTh0 = new AutoResetEvent(false);
       _waitingReadEventTh1 = new AutoResetEvent(false);
-      _waitingReadEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _waitingReadEventTh0 }, { 1, _waitingReadEventTh1 } };
+      _waitingReadEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _waitingReadEventTh0},
+        {ActorType.Receiver, _waitingReadEventTh1}
+      };
       _canWriteEventTh0 = new AutoResetEvent(false);
       _canWriteEventTh1 = new AutoResetEvent(false);
-      _canWriteEvents = new Dictionary<byte, AutoResetEvent>(2) { { 0, _canWriteEventTh0 }, { 1, _canWriteEventTh1 } };
+      _canWriteEvents = new Dictionary<ActorType, AutoResetEvent>(2)
+      {
+        {ActorType.Transmitter, _canWriteEventTh0},
+        {ActorType.Receiver, _canWriteEventTh1}
+      };
       _lastPacketEvent = new AutoResetEvent(false);
       _ackTimeoutEvent = new AutoResetEvent(false);
     }
@@ -380,24 +405,22 @@ namespace DataLinkApplication
 
     protected void StartAckTimer()
     {
-        //ReleaseTimer(frameNb);
-
-        //_timerAck = new System.Timers.Timer(_timeout);
-        _timerAck.Elapsed += OnTimedEventAck;
-        _timerAck.AutoReset = false;
-        _timerAck.Enabled = true;
+      _timerAck.Elapsed += OnTimedEventAck;
+      _timerAck.AutoReset = false;
+      _timerAck.Enabled = true;
     }
 
-        protected void StopTimer(int frameNb)
+    protected void StopTimer(int frameNb)
     {
       ReleaseTimer(frameNb);
     }
-        protected void StopAckTimer()
-        {
-            _timerAck.Stop();
-        }
 
-        protected void EnableNetworkLayer()
+    protected void StopAckTimer()
+    {
+      _timerAck.Stop();
+    }
+
+    protected void EnableNetworkLayer()
     {
       _networkLayerEnable = true;
     }
@@ -415,15 +438,15 @@ namespace DataLinkApplication
     private void OnTimedEvent(Object source, ElapsedEventArgs e)
     {
       Console.WriteLine("The timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
-      _frameTimeoutEvents[_threadId].Set();
+      _frameTimeoutEvents[_actorType].Set();
     }
     private void OnTimedEventAck(Object source, ElapsedEventArgs e)
     {
-        Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
-        _ackTimeoutEvent.Set();
+      Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
+      _ackTimeoutEvent.Set();
     }
 
-        private void ReleaseTimer(int frameNb)
+    private void ReleaseTimer(int frameNb)
     {
       if (_timers.ContainsKey(frameNb))
       {

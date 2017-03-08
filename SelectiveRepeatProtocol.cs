@@ -11,16 +11,16 @@ namespace DataLinkApplication
         private byte oldest_frame;
     #region Constructor
 
-        public SelectiveRepeatProtocol(byte windowSize, int timeout, string fileName, bool inFile, ITransmissionSupport transmissionSupport)
-      :base(windowSize, timeout, fileName, inFile, transmissionSupport)
+        public SelectiveRepeatProtocol(byte windowSize, int timeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
+      :base(windowSize, timeout, fileName, actorType, transmissionSupport)
     {
       _NR_BUFS = (byte)((_MAX_SEQ + 1) / 2);
       no_nak = true;
       oldest_frame = (byte)(_MAX_SEQ + 1);
       _communicationThread = new Thread(Protocol);
       _communicationThread.Start();
-      Console.WriteLine(string.Format("Starting the data link layer thread of the {0}", inFile ? "transmitter" : "receiver"));
-      //_communicationThread.Start();
+      Console.WriteLine(string.Format("Started the data link layer thread of the {0} (Thread Id: {1})", actorType,
+        _communicationThread.ManagedThreadId));
     }
 
     #endregion
@@ -44,8 +44,8 @@ namespace DataLinkApplication
             // Creates events that trigger the thread changing
             var waitHandles = new WaitHandle[]
             {
-        _closingEvents[_threadId], _networkLayerReadyEvents[_threadId], _frameArrivalEvents[_threadId],
-        _frameErrorEvents[_threadId], _frameTimeoutEvents[_threadId],_ackTimeoutEvent
+        _closingEvents[_actorType], _networkLayerReadyEvents[_actorType], _frameArrivalEvents[_actorType],
+        _frameErrorEvents[_actorType], _frameTimeoutEvents[_actorType],_ackTimeoutEvent
             };
 
             /* allow network layer ready events */
@@ -156,7 +156,7 @@ namespace DataLinkApplication
                     DisableNetworkLayer();
                 }
             }
-            Console.WriteLine(string.Format("**** The Data Link Layer of the {0} thread terminated ****", _threadId == 0 ? "transmission" : "reception"));
+            Console.WriteLine(string.Format("**** The Data Link Layer of the {0} thread terminated ****", _actorType));
         }
 
     private void SendData(FrameKind fk,byte frameNb, byte frameExpected, Packet[] buffer)

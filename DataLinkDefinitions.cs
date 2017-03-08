@@ -17,4 +17,10 @@ namespace DataLinkApplication
     Ack,
     Nak
   }
+
+  public enum ActorType
+  {
+    Transmitter = 0,
+    Receiver = 1
+  }
 }

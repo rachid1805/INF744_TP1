@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Threading;
 
 namespace DataLinkApplication
@@ -8,14 +7,14 @@ namespace DataLinkApplication
   {
     #region Constructor
 
-    public GoBacknProtocol(byte windowSize, int timeout, string fileName, bool inFile, ITransmissionSupport transmissionSupport)
-      :base(windowSize, timeout, fileName, inFile, transmissionSupport)
+    public GoBacknProtocol(byte windowSize, int timeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
+      :base(windowSize, timeout, fileName, actorType, transmissionSupport)
     {
       _communicationThread = new Thread(Protocol);
       _communicationThread.Start();
       Console.WriteLine(
         string.Format("Started the data link layer thread of the {0} (Thread Id: {1})",
-          inFile ? "transmitter" : "receiver", _communicationThread.ManagedThreadId));
+          actorType, _communicationThread.ManagedThreadId));
     }
 
     #endregion
@@ -33,8 +32,8 @@ namespace DataLinkApplication
       // Creates events that trigger the thread changing
       var waitHandles = new WaitHandle[]
       {
-        _closingEvents[_threadId], _networkLayerReadyEvents[_threadId], _frameArrivalEvents[_threadId],
-        _frameErrorEvents[_threadId], _frameTimeoutEvents[_threadId]
+        _closingEvents[_actorType], _networkLayerReadyEvents[_actorType], _frameArrivalEvents[_actorType],
+        _frameErrorEvents[_actorType], _frameTimeoutEvents[_actorType]
       };
 
       /* allow network layer ready events */
@@ -120,7 +119,7 @@ namespace DataLinkApplication
           DisableNetworkLayer();
         }
       }
-      Console.WriteLine(string.Format("**** The Data Link Layer of the {0} thread terminated ****", _threadId == 0 ? "transmission" : "reception"));
+      Console.WriteLine(string.Format("**** The Data Link Layer of the {0} thread terminated ****", _actorType));
     }
 
     #endregion
