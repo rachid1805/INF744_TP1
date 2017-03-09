@@ -61,17 +61,19 @@ namespace DataLinkApplication
 
             byte HammingByteCalculatedParitybit = 0;
             byte HammingByteInputParitybit = 0;
-            //extract parity bit
+           
             if (HammingByteCalculated > 63)
             {
-                HammingByteCalculatedParitybit = 1;
                 HammingByteCalculated = (byte)(HammingByteCalculated - 64);
-            }
+            }//extract parity bit
             if (binaryHammingInput > 63)
             {
                 HammingByteInputParitybit = 1;
                 binaryHammingInput = (byte)(binaryHammingInput - 64);
             }
+
+            HammingByteCalculatedParitybit = calculateParityBit(name, Convert.ToString((int)binaryHammingInput, 2).PadLeft(8, '0'));
+
             byte compareHammingParity = (byte)(HammingByteCalculatedParitybit ^ HammingByteInputParitybit);
 
             byte compareHamming = (byte)(binaryHammingInput ^ HammingByteCalculated);
@@ -158,18 +160,38 @@ namespace DataLinkApplication
         }
         private static byte calculateParity(String name)
         {
-            //Calculate parity bits
+            //Calculate check bits
             int P0 = ((name[0] - '0') + (name[1] - '0') + (name[3] - '0') + (name[4] - '0') + (name[6] - '0') + (name[8] - '0') + (name[10] - '0') + (name[11] - '0') + (name[13] - '0') + (name[15] - '0') + (name[17] - '0') + (name[19] - '0') + (name[21] - '0') + (name[23] - '0') + (name[25] - '0') + (name[26] - '0') + (name[28] - '0') + (name[30] - '0')) % 2;
             int P1 = ((name[0] - '0') + (name[2] - '0') + (name[3] - '0') + (name[5] - '0') + (name[6] - '0') + (name[9] - '0') + (name[10] - '0') + (name[12] - '0') + (name[13] - '0') + (name[16] - '0') + (name[17] - '0') + (name[20] - '0') + (name[21] - '0') + (name[24] - '0') + (name[25] - '0') + (name[27] - '0') + (name[28] - '0') + (name[31] - '0')) % 2;
             int P2 = ((name[1] - '0') + (name[2] - '0') + (name[3] - '0') + (name[7] - '0') + (name[8] - '0') + (name[9] - '0') + (name[10] - '0') + (name[14] - '0') + (name[15] - '0') + (name[16] - '0') + (name[17] - '0') + (name[22] - '0') + (name[23] - '0') + (name[24] - '0') + (name[25] - '0') + (name[29] - '0') + (name[30] - '0') + (name[31] - '0')) % 2;
             int P3 = ((name[4] - '0') + (name[5] - '0') + (name[6] - '0') + (name[7] - '0') + (name[8] - '0') + (name[9] - '0') + (name[10] - '0') + (name[18] - '0') + (name[19] - '0') + (name[20] - '0') + (name[21] - '0') + (name[22] - '0') + (name[23] - '0') + (name[24] - '0') + (name[25] - '0')) % 2;
             int P4 = ((name[11] - '0') + (name[12] - '0') + (name[13] - '0') + (name[14] - '0') + (name[15] - '0') + (name[16] - '0') + (name[17] - '0') + (name[18] - '0') + (name[19] - '0') + (name[20] - '0') + (name[21] - '0') + (name[22] - '0') + (name[23] - '0') + (name[24] - '0') + (name[25] - '0')) % 2;
             int P5 = ((name[26] - '0') + (name[27] - '0') + (name[28] - '0') + (name[29] - '0') + (name[30] - '0') + (name[30] - '0')) % 2;
-            int ParityBit = (P0 + P1 + P2 + P3 + P4 + P5) % 2;
+            //int ParityBit = (P0 + P1 + P2 + P3 + P4 + P5) % 2;
+            int ParityBit = (P0 + P1 + P2 + P3 + P4 + P5);
+            for (int i = 0; i < name.Length; i++)
+                ParityBit = ParityBit + (name[i]- '0');
+            ParityBit = ParityBit % 2;
 
             int HammingB = (ParityBit << 6) | (P0 << 5) | (P1 << 4) | (P2 << 3) | (P3 << 2) | (P4 << 1) | P5;
             byte HammingByte = (byte)HammingB;
             return HammingByte;
+        }
+        private static byte calculateParityBit(String name, String checkBits)
+        {
+
+            //int ParityBit = (P0 + P1 + P2 + P3 + P4 + P5) % 2;
+            int ParityBit=0;
+
+            for (int i = 0; i < name.Length; i++)
+                ParityBit = ParityBit + (name[i] - '0');
+            for (int i = 0; i < checkBits.Length; i++)
+                ParityBit = ParityBit + (checkBits[i] - '0');
+
+            ParityBit = ParityBit % 2;
+
+
+            return (byte)ParityBit;
         }
     }
 }
