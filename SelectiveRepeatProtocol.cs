@@ -114,8 +114,8 @@ namespace DataLinkApplication
                                     ToNetworkLayer(inBuffer[frameExpected % _NR_BUFS]);
                                     no_nak = true;
                                     arrived[frameExpected % _NR_BUFS] = false;
-                                    Inc(frameExpected);
-                                    Inc(tooFar);
+                                    frameExpected = Inc(frameExpected);
+                                    tooFar=Inc(tooFar);
                                     StartAckTimer();
                                 }
                             }
@@ -123,13 +123,13 @@ namespace DataLinkApplication
 
                         if ((r.Kind == FrameKind.Nak) && Between(ackExpected, (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), nextFrameToSend))
                         {
-                            SendData(FrameKind.Data, (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), (byte)(frameExpected ), outBuffer);      
+                            SendData(FrameKind.Data, (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), frameExpected , outBuffer);      
                         }
                         while (Between(ackExpected, r.Ack, nextFrameToSend))
                         {
                             nbBuffered--;
                             StopTimer(ackExpected % _NR_BUFS); /* frame arrived intact; stop timer */
-                            ackExpected = Inc(ackExpected); /* contract sender’s window */
+                            ackExpected= Inc(ackExpected); /* contract sender’s window */
                         }
 
                         break;
@@ -147,7 +147,7 @@ namespace DataLinkApplication
                         break;
                 }
 
-                if (nbBuffered < _MAX_SEQ)
+                if (nbBuffered < _NR_BUFS)
                 {
                     EnableNetworkLayer();
                 }
@@ -168,11 +168,12 @@ namespace DataLinkApplication
                 data = new Packet { Data = new byte[1] { (byte)0 } }; //envoie packet de 0. Pas utilise par application
             if (fk == FrameKind.Nak)
                 no_nak = false;
-            
+
             // Construct and send a data frame.
             Frame frame = new Frame
-        {
+            {
             /* insert packet into frame */
+            Kind = fk,
             Info = data,
             /* insert sequence number into frame */
             Seq = frameNb,
@@ -188,7 +189,7 @@ namespace DataLinkApplication
             /* start the timer running */
         if (fk == FrameKind.Data)
         {
-            StartTimer(frameNb);
+            StartTimer(frameNb % _NR_BUFS);
         }
 
             StopAckTimer();
