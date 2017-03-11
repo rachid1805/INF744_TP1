@@ -7,8 +7,8 @@ namespace DataLinkApplication
   {
     #region Constructor
 
-    public GoBacknProtocol(byte windowSize, int timeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
-      :base(windowSize, timeout, fileName, actorType, transmissionSupport)
+    public GoBacknProtocol(byte windowSize, int timeout, int ackTimeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
+      :base(windowSize, timeout, ackTimeout, fileName, actorType, transmissionSupport)
     {
       _communicationThread = new Thread(Protocol);
       _communicationThread.Start();

@@ -58,7 +58,7 @@ namespace DataLinkApplication
 
     #region Constructor
 
-    protected ProtocolBase(byte windowSize, int timeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
+    protected ProtocolBase(byte windowSize, int timeout, int ackTimeout, string fileName, ActorType actorType, ITransmissionSupport transmissionSupport)
     {
       _transmissionSupport = transmissionSupport;
       _MAX_SEQ = (byte) (windowSize - 1);
@@ -66,7 +66,7 @@ namespace DataLinkApplication
       _fileName = fileName;
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
-      _timerAck = new System.Timers.Timer(_timeout);
+      _timerAck = new System.Timers.Timer(ackTimeout);
       _actorType = actorType;
       _lock = new object();
 
@@ -437,12 +437,12 @@ namespace DataLinkApplication
 
     private void OnTimedEvent(Object source, ElapsedEventArgs e)
     {
-      Console.WriteLine("The timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
+      //Console.WriteLine("The timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
       _frameTimeoutEvents[_actorType].Set();
     }
     private void OnTimedEventAck(Object source, ElapsedEventArgs e)
     {
-      Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
+      //Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
       _ackTimeoutEvent.Set();
     }
 

@@ -31,7 +31,7 @@ namespace DataLinkApplication
     public TransmissionSupport(int latency, byte probabilityError, byte numberOfBitErrors)
     {
       _latency = latency;
-      _frameToCorrupt = (byte)(100 / probabilityError);
+      _frameToCorrupt = (probabilityError != 0) ? (byte)(100 / probabilityError) : (byte)0;
       _numberOfBitErrors = numberOfBitErrors;
       _pretEmettreSource = true;
       _donneeRecueDestination = false;
@@ -56,15 +56,15 @@ namespace DataLinkApplication
             // Corrupt frame
             Console.WriteLine(
               string.Format(
-                "Transmission support: corruption of {0} bits in frame with buffer 0x{1:X} (Thread Id: {2}) (frame number {3})",
-                _numberOfBitErrors, _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId, _frameNumber));
+                "Transmission support: corruption of {0} bits in frame with buffer 0x{1:X} (Thread Id: {2})",
+                _numberOfBitErrors, _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
             _receptionDestination = Frame.CorruptFrame(_envoiSource, _numberOfBitErrors);
           }
           else
           {
             Console.WriteLine(
-              string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1}) (frame number {2})",
-                _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId, _frameNumber));
+              string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
+                _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
             _receptionDestination = Frame.CopyFrom(_envoiSource);
           }
           _frameNumber++;
@@ -81,14 +81,14 @@ namespace DataLinkApplication
           if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             Console.WriteLine(string.Format(
-              "Transmission support: corruption of {0} bits in frame Ack (Thread Id: {1}) (frame number {2})",
-              _numberOfBitErrors, Thread.CurrentThread.ManagedThreadId, _frameNumber));
+              "Transmission support: corruption of {0} bits in frame Ack (Thread Id: {1})",
+              _numberOfBitErrors, Thread.CurrentThread.ManagedThreadId));
             _receptionSource = Frame.CorruptFrame(_envoiDestination, _numberOfBitErrors);
           }
           else
           {
-            Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0}) (frame number {1})",
-              Thread.CurrentThread.ManagedThreadId, _frameNumber));
+            Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
+              Thread.CurrentThread.ManagedThreadId));
             _receptionSource = Frame.CopyFrom(_envoiDestination);
           }
           _frameNumber++;

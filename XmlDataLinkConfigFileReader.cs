@@ -19,6 +19,7 @@ namespace DataLinkApplication
     private const string WindowSizeTag = "WindowSize";
     private const string RejectTypeTag = "RejectType";
     private const string TimeoutTag = "Timeout";
+    private const string AckTimeoutTag = "AckTimeout";
     private const string LatencyTag = "Latency";
     private const string ProbabilityErrorTag = "ProbabilityError";
     private const string NumberOfBitErrorsTag = "NumberOfBitErrors";
@@ -53,6 +54,7 @@ namespace DataLinkApplication
         var windowSizeStr = string.Empty;
         var rejectTypeStr = string.Empty;
         var timeoutStr = string.Empty;
+        var ackTimeoutStr = string.Empty;
         var latencyStr = string.Empty;
         var probabilityErrorStr = string.Empty;
         var numberOfBitErrorsStr = string.Empty;
@@ -87,6 +89,9 @@ namespace DataLinkApplication
                 break;
               case TimeoutTag:
                 timeoutStr = ReadValue(xmlReader);
+                break;
+              case AckTimeoutTag:
+                ackTimeoutStr = ReadValue(xmlReader);
                 break;
               case LatencyTag:
                 latencyStr = ReadValue(xmlReader);
@@ -150,6 +155,12 @@ namespace DataLinkApplication
         }
         Timeout = Int32.Parse(timeoutStr);
 
+        if (string.IsNullOrEmpty(ackTimeoutStr))
+        {
+          throw new ApplicationException("Unrecognized XML file format provided: AckTimeout Tag Not Found!");
+        }
+        AckTimeout = Int32.Parse(ackTimeoutStr);
+
         if (string.IsNullOrEmpty(latencyStr))
         {
           throw new ApplicationException("Unrecognized XML file format provided: Latency Tag Not Found!");
@@ -192,6 +203,7 @@ namespace DataLinkApplication
     public byte WindowSize { get; private set; }
     public RejectType RejectType { get; private set; }
     public int Timeout { get; private set; }
+    public int AckTimeout { get; private set; }
     public int Latency { get; private set; }
     public byte ProbabilityError { get; private set; }
     public byte NumberOfBitErrors { get; private set; }
