@@ -149,7 +149,7 @@ namespace DataLinkApplication
                     Info = packetData,
                     //Hamming = HammingByte,
                 };
-                Console.WriteLine(Convert.ToString((int)f2.Kind, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Seq, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Ack, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Info.Data[0], 2).PadLeft(8, '0'));
+                //Console.WriteLine(Convert.ToString((int)f2.Kind, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Seq, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Ack, 2).PadLeft(8, '0') + Convert.ToString((int)f2.Info.Data[0], 2).PadLeft(8, '0'));
                 return f2;
             }
             else

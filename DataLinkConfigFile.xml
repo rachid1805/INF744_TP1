@@ -18,6 +18,6 @@
     <!--La probabilité des erreurs à introduire dans les trames en % (10% => 1 trame sur 10 est en erreur)-->
     <ProbabilityError>20</ProbabilityError>
     <!--Le nombre de bits erronés dans la trame-->
-    <NumberOfBitErrors>2</NumberOfBitErrors>
+    <NumberOfBitErrors>0</NumberOfBitErrors>
   </DataLinkCommands>
 </Document>
