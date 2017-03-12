@@ -243,7 +243,6 @@ namespace DataLinkApplication
 
     public void SendAck(Frame frame)
     {
-      frame.Kind = FrameKind.Ack;
       _ackQueueToSend[_nextAckToSend] = frame;
       _nextAckToSend = Inc(_nextAckToSend);
       lock (_lockAckToSend)
