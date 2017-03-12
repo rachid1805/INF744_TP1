@@ -42,7 +42,19 @@ namespace DataLinkApplication
       {
         // Read the config file content
         var xmlFileReader = new XmlDataLinkConfigFileReader(_configFile);
-
+        Console.WriteLine("********************************************************");
+        Console.WriteLine("Reading input file :             DataLinkConfigFile.xml");
+        Console.WriteLine("********************************************************");
+        Console.WriteLine("Name and path of input file:     {0}",xmlFileReader.InFile);
+        Console.WriteLine("Name and path of output file:    {0}", xmlFileReader.OutFile);
+        Console.WriteLine("Windows size:                    {0}", xmlFileReader.WindowSize);
+        Console.WriteLine("RejectType:                      {0}", xmlFileReader.RejectType);
+        Console.WriteLine("Frame Timeout:                   {0}", xmlFileReader.Timeout);
+        Console.WriteLine("Acknowledgement Timeout:         {0}", xmlFileReader.AckTimeout);
+        Console.WriteLine("Transmission latency:            {0}", xmlFileReader.Latency);
+        Console.WriteLine("Probability of injected errors:  {0}", xmlFileReader.ProbabilityError);
+        Console.WriteLine("Number of errors per frame:      {0}", xmlFileReader.NumberOfBitErrors);
+        Console.WriteLine("********************************************************");
         // Create the transmission support thread
         var transmissionSupport = new TransmissionSupport(xmlFileReader.Latency, xmlFileReader.ProbabilityError, xmlFileReader.NumberOfBitErrors);
         _transmissionSupportThread = new Thread(transmissionSupport.StartPhysicalLayer);
