@@ -39,13 +39,16 @@ namespace DataLinkApplication
       string binaryData = Convert.ToString((int)frameToCorrupt.Info.Data[0], 2).PadLeft(8, '0');
       string binaryHamming = Convert.ToString((int)frameToCorrupt.Hamming, 2).PadLeft(8, '0');
       string name = binaryKind + binarySeq + binaryAck + binaryData + binaryHamming;
-
+      //Console.WriteLine(name);
       StringBuilder strBuilder = new StringBuilder(name);
 
       while (numberOfBitsToCorrupt > 0)
       {
-        var bitToCorrupt = s_random.Next(39);
 
+        var bitToCorrupt = s_random.Next(39);
+        while (bitToCorrupt == 32 || bitToCorrupt == 33) //exclure bit non significatif dans la trame
+        { bitToCorrupt = s_random.Next(39); }
+             //   Console.WriteLine(bitToCorrupt);
         if (name[bitToCorrupt].Equals('1'))
         {
           strBuilder[bitToCorrupt] = '0';
@@ -55,7 +58,8 @@ namespace DataLinkApplication
           strBuilder[bitToCorrupt] = '1';
         }
         numberOfBitsToCorrupt--;
-      }
+             //   Console.WriteLine(strBuilder);
+            }
 
       return new Frame
       {
