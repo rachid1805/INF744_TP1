@@ -143,14 +143,14 @@ namespace DataLinkApplication
           if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             Console.WriteLine(string.Format(
-              "Transmission support: corruption of {0} bits in frame Ack (Thread Id: {1})",
-              _numberOfBitErrors, Thread.CurrentThread.ManagedThreadId));
+              "Transmission support: corruption of {0} bits in frame Ack (Seq = {1}. Ack = {2})",
+              _numberOfBitErrors, _ackQueueToSend[_oldestAckToSend].Seq, _ackQueueToSend[_oldestAckToSend].Ack));
             _ackQueueToReceive[_oldestAckToReceive] = Frame.CorruptFrame(_ackQueueToSend[_oldestAckToSend], _numberOfBitErrors);
           }
           else
           {
-            Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
-              Thread.CurrentThread.ManagedThreadId));
+            Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Seq = {0}. Ack = {1})",
+              _ackQueueToSend[_oldestAckToSend].Seq, _ackQueueToSend[_oldestAckToSend].Ack));
             _ackQueueToReceive[_oldestAckToReceive] = Frame.CopyFrom(_ackQueueToSend[_oldestAckToSend]);
           }
           _frameNumber++;
@@ -274,6 +274,7 @@ namespace DataLinkApplication
     public Frame ReceiveAck()
     {
       var frame = Frame.CopyFrom(_ackQueueToReceive[_oldestAckToReceive]);
+      frame.Kind = FrameKind.Ack;
       _oldestAckToReceive = Inc(_oldestAckToReceive);
       lock (_lockAckToReceive)
       {

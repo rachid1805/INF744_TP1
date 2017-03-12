@@ -143,7 +143,6 @@ namespace DataLinkApplication
       Frame frameEncoded = Hamming.encodeHamming(frame);
 
       /* transmit the frame */
-      //ToPhysicalLayer(frame);
       ToPhysicalLayer(frameEncoded);
       /* start the timer running */
       StartTimer(frameNb);
