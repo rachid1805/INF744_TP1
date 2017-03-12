@@ -94,7 +94,7 @@ namespace DataLinkApplication
         }
         if (dataReady && !_donneeRecueDestination)
         {
-          if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
+          if ((_frameToCorrupt != 0) && (_numberOfBitErrors != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             Console.WriteLine(
               string.Format(
@@ -138,7 +138,7 @@ namespace DataLinkApplication
         }
         if (ackReady && !_donneeRecueSource)
         {
-          if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
+          if ((_frameToCorrupt != 0) && (_numberOfBitErrors != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             Console.WriteLine(string.Format(
               "Transmission support: corruption of {0} bits in frame Ack (Seq = {1}. Ack = {2})",
