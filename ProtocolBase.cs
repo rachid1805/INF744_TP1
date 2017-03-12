@@ -299,6 +299,11 @@ namespace DataLinkApplication
       var otherActor = _actorType == ActorType.Transmitter ? ActorType.Receiver : ActorType.Transmitter;
       if (_actorType == ActorType.Transmitter)
       {
+        // Sending a data to the receiver
+        //while (!_transmissionSupport.ReadyToSendData)
+        //{
+        //  Thread.Sleep(1);
+        //}
         if (_transmissionSupport.ReadyToSendData)
         {
           _transmissionSupport.SendData(frame);
@@ -307,6 +312,11 @@ namespace DataLinkApplication
       }
       else
       {
+        // Sending an ack to the transmitter
+        //while (!_transmissionSupport.ReadyToSendAck)
+        //{
+        //  Thread.Sleep(1);
+        //}
         if (_transmissionSupport.ReadyToSendAck)
         {
           _transmissionSupport.SendAck(frame);
