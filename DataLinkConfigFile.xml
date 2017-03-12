@@ -8,7 +8,7 @@
     <!--La taille du tampon de transmission (Max 256 bytes)-->
     <WindowSize>8</WindowSize>
     <!--Global/Selective Reject (Rejet Global ou Selectif)-->
-    <RejectType>Selective</RejectType>
+    <RejectType>Global</RejectType>
     <!--Le timeout de la station de transmission en ms-->
     <Timeout>200</Timeout>
     <!--Le timeout du Ack du protocole 6 en ms. Il est essentiel qu'il soit beaucoup plus court que le timeout de la trame-->
@@ -16,8 +16,8 @@
     <!--La latence de transmission en ms entre la station émettrice et la station réceptrice-->
     <Latency>10</Latency>
     <!--La probabilité des erreurs à introduire dans les trames en % (10% => 1 trame sur 10 est en erreur)-->
-    <ProbabilityError>0</ProbabilityError>
+    <ProbabilityError>10</ProbabilityError>
     <!--Le nombre de bits erronés dans la trame-->
-    <NumberOfBitErrors>0</NumberOfBitErrors>
+    <NumberOfBitErrors>1</NumberOfBitErrors>
   </DataLinkCommands>
 </Document>

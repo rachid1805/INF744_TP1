@@ -153,7 +153,7 @@ namespace DataLinkApplication
             }
             else
             {
-                Console.WriteLine("Hamming: Erreur de 2 bits ou plus. Trame rejetee");
+                Console.WriteLine("Hamming: Erreur de 2 bits ou erreur dans le checksum. Trame rejetee");
                 Frame f = null;
                 return f;
             }

@@ -96,8 +96,8 @@ namespace DataLinkApplication
 
             if (r == null)
             {
-              Console.WriteLine(string.Format("FRAME ARRIVAL - frame buffer 0x{0:X} rejected from physical layer of {1} (Data link layer Thread Id: {2})",
-                r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
+             // Console.WriteLine(string.Format("FRAME ARRIVAL - frame buffer 0x{0:X} rejected from physical layer of {1} (Data link layer Thread Id: {2})",
+             //   r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
               //_frameErrorE_CKSUM_ERRORvents[(byte)(1 - _threadId)].Set();
               // goto case _CKSUM_ERROR;
               break; //reject frame
