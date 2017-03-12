@@ -299,11 +299,6 @@ namespace DataLinkApplication
       var otherActor = _actorType == ActorType.Transmitter ? ActorType.Receiver : ActorType.Transmitter;
       if (_actorType == ActorType.Transmitter)
       {
-        // Sending a data to the receiver
-        //while (!_transmissionSupport.ReadyToSendData)
-        //{
-        //  Thread.Sleep(1);
-        //}
         if (_transmissionSupport.ReadyToSendData)
         {
           _transmissionSupport.SendData(frame);
@@ -312,11 +307,6 @@ namespace DataLinkApplication
       }
       else
       {
-        // Sending an ack to the transmitter
-        //while (!_transmissionSupport.ReadyToSendAck)
-        //{
-        //  Thread.Sleep(1);
-        //}
         if (_transmissionSupport.ReadyToSendAck)
         {
           _transmissionSupport.SendAck(frame);
@@ -442,12 +432,10 @@ namespace DataLinkApplication
 
     private void OnTimedEvent(Object source, ElapsedEventArgs e)
     {
-      //Console.WriteLine("The timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
       _frameTimeoutEvents[_actorType].Set();
     }
     private void OnTimedEventAck(Object source, ElapsedEventArgs e)
     {
-      //Console.WriteLine("The Ack timeout event was raised at {0:HH:mm:ss.fff}", e.SignalTime);
       _ackTimeoutEvent.Set();
     }
 

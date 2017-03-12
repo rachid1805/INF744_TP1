@@ -83,16 +83,12 @@ namespace DataLinkApplication
             // A data or control frame has arrived (_frameArrivalEvent)
             // In our case, a new packet to write to the output file or received an ack
             // get incoming frame from physical layer
-            //var r = FromPhysicalLayer();  /* scratch variable */
             var a = FromPhysicalLayer();  /* scratch variable */
             //Decode frame and correct errors using Hamming protocol
             var r = Hamming.decodeHamming(a);
 
             if (r == null)
             {
-             // Console.WriteLine(string.Format("FRAME ARRIVAL - frame buffer 0x{0:X} rejected from physical layer of {1} (Data link layer Thread Id: {2})",
-             //   r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
-              //_frameErrorE_CKSUM_ERRORvents[(byte)(1 - _threadId)].Set();
               // goto case _CKSUM_ERROR;
               break; //reject frame
             }
@@ -145,8 +141,6 @@ namespace DataLinkApplication
             }
             break;
           case _TIMEOUT:
-            Console.WriteLine(string.Format(" EVENT TIME OUT - DATA FRAME SENT oldestFrame: {0} frameExpected: {1}  ", _oldest_frame, frameExpected));
-            Console.WriteLine(string.Format(" EVENT TIME OUT - DATA FRAME SENT nextFrameToSend: {0} ackExpected: {1}  ", nextFrameToSend, ackExpected));
             SendData(FrameKind.Data, _oldest_frame, frameExpected, outBuffer);
 
             break;
