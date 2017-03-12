@@ -67,6 +67,8 @@ namespace DataLinkApplication
       _networkLayerEnable = false;
       _timers = new Dictionary<int, System.Timers.Timer>(_MAX_SEQ);
       _timerAck = new System.Timers.Timer(ackTimeout);
+      _timerAck.Elapsed += OnTimedEventAck;
+      _timerAck.AutoReset = false;
       _actorType = actorType;
       _lock = new object();
 
@@ -405,9 +407,11 @@ namespace DataLinkApplication
 
     protected void StartAckTimer()
     {
-      _timerAck.Elapsed += OnTimedEventAck;
-      _timerAck.AutoReset = false;
-      _timerAck.Enabled = true;
+      if (!_timerAck.Enabled)
+      {
+        _timerAck.Enabled = true;
+        _timerAck.Start();
+      }
     }
 
     protected void StopTimer(int frameNb)
@@ -418,6 +422,7 @@ namespace DataLinkApplication
     protected void StopAckTimer()
     {
       _timerAck.Stop();
+      _timerAck.Enabled = false;
     }
 
     protected void EnableNetworkLayer()

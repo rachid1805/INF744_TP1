@@ -7,8 +7,8 @@ namespace DataLinkApplication
   public class SelectiveRepeatProtocol : ProtocolBase
   {
     private static byte _NR_BUFS;
-    private bool no_nak;
-    private byte oldest_frame;
+    private bool _no_nak;
+    private byte _oldest_frame;
 
     #region Constructor
 
@@ -16,8 +16,8 @@ namespace DataLinkApplication
       : base(windowSize, timeout, ackTimeout, fileName, actorType, transmissionSupport)
     {
       _NR_BUFS = (byte)((_MAX_SEQ + 1) / 2);
-      no_nak = true;
-      oldest_frame = (byte)(_MAX_SEQ + 1);
+      _no_nak = true;
+      _oldest_frame = (byte)(_MAX_SEQ + 1);
       _communicationThread = new Thread(Protocol);
       _communicationThread.Start();
       Console.WriteLine(string.Format("Started the data link layer thread of the {0} (Thread Id: {1})", actorType,
@@ -39,16 +39,13 @@ namespace DataLinkApplication
       bool[] arrived = new bool[_NR_BUFS];
       for (int i = 0; i < _NR_BUFS; i++) arrived[i] = false;
       byte nbBuffered = 0;      /* number of output buffers currently in use */
-
-
-
+            
       // Creates events that trigger the thread changing
       var waitHandles = new WaitHandle[]
       {
         _closingEvents[_actorType], _networkLayerReadyEvents[_actorType], _frameArrivalEvents[_actorType],
         _frameErrorEvents[_actorType], _frameTimeoutEvents[_actorType],_ackTimeoutEvent
-      };
-            
+      };    
 
       /* allow network layer ready events */
       EnableNetworkLayer();
@@ -99,9 +96,9 @@ namespace DataLinkApplication
 
             if (r == null)
             {
-              //Console.WriteLine(string.Format("FRAME ARRIVAL - frame buffer 0x{0:X} rejected from physical layer of {1} (Data link layer Thread Id: {2})",
-              //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
-              // _frameErrorE_CKSUM_ERRORvents[(byte)(1 - _threadId)].Set();
+              Console.WriteLine(string.Format("FRAME ARRIVAL - frame buffer 0x{0:X} rejected from physical layer of {1} (Data link layer Thread Id: {2})",
+                r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
+              //_frameErrorE_CKSUM_ERRORvents[(byte)(1 - _threadId)].Set();
               // goto case _CKSUM_ERROR;
               break; //reject frame
             }
@@ -109,7 +106,7 @@ namespace DataLinkApplication
             {
               //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} from physical layer of {1} (Data link layer Thread Id: {2})",
               //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
-              if ((r.Seq != frameExpected) && no_nak)
+              if ((r.Seq != frameExpected) && _no_nak)
               {
                 //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} not expected of {1} (Data link layer Thread Id: {2})",
                 //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
@@ -131,7 +128,7 @@ namespace DataLinkApplication
                 {
                   //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data frame {0} send to network layer )", frameExpected));
                   ToNetworkLayer(inBuffer[frameExpected % _NR_BUFS]);
-                  no_nak = true;
+                  _no_nak = true;
                   arrived[frameExpected % _NR_BUFS] = false;
                   frameExpected = Inc(frameExpected);
                   tooFar = Inc(tooFar);
@@ -155,18 +152,20 @@ namespace DataLinkApplication
               nbBuffered--;
               StopTimer(ackExpected % _NR_BUFS); /* frame arrived intact; stop timer */
               ackExpected = Inc(ackExpected); /* contract sender’s window */
+              _oldest_frame = ackExpected;
             }
 
             break;
           case _CKSUM_ERROR:
-            if (no_nak)
+            if (_no_nak)
             {
               SendData(FrameKind.Nak, 0, frameExpected, outBuffer);  //damaged frame
             }
             break;
           case _TIMEOUT:
-            //Console.WriteLine(string.Format(" EVENT TIME OUT - DATA FRAME SENT oldestFrame: {0} frameExpected: {1}  ", oldest_frame, frameExpected));
-            SendData(FrameKind.Data, oldest_frame, frameExpected, outBuffer);
+            Console.WriteLine(string.Format(" EVENT TIME OUT - DATA FRAME SENT oldestFrame: {0} frameExpected: {1}  ", _oldest_frame, frameExpected));
+            Console.WriteLine(string.Format(" EVENT TIME OUT - DATA FRAME SENT nextFrameToSend: {0} ackExpected: {1}  ", nextFrameToSend, ackExpected));
+            SendData(FrameKind.Data, _oldest_frame, frameExpected, outBuffer);
 
             break;
           case _ACK_TIMEOUT:
@@ -195,7 +194,7 @@ namespace DataLinkApplication
       else
         data = new Packet { Data = new byte[1] { (byte)0 } }; //envoie packet de 0. Pas utilise par application
       if (fk == FrameKind.Nak)
-        no_nak = false;
+        _no_nak = false;
 
       // Construct and send a data frame.
       Frame frame = new Frame

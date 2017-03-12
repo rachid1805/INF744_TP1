@@ -23,6 +23,27 @@ namespace DataLinkApplication
     private readonly byte _frameToCorrupt;
     private readonly byte _numberOfBitErrors;
     private static double _frameNumber = 1;
+    private Frame[] _frameQueueToSend;
+    private Frame[] _frameQueueToReceive;
+    private Frame[] _ackQueueToSend;
+    private Frame[] _ackQueueToReceive;
+    private byte _nextFrameToSend;
+    private byte _nextFrameToReceive;
+    private byte _nextAckToSend;
+    private byte _nextAckToReceive;
+    private byte _oldestFrameToSend;
+    private byte _oldestFrameToReceive;
+    private byte _oldestAckToSend;
+    private byte _oldestAckToReceive;
+    private byte _nbFrameBufferedToSend;
+    private byte _nbFrameBufferedToReceive;
+    private byte _nbAckBufferedToSend;
+    private byte _nbAckBufferedToReceive;
+    private static byte _MAX_SEQ;
+    private readonly object _lockFrameToSend;
+    private readonly object _lockFrameToReceive;
+    private readonly object _lockAckToSend;
+    private readonly object _lockAckToReceive;
 
     #endregion
 
@@ -37,6 +58,27 @@ namespace DataLinkApplication
       _donneeRecueDestination = false;
       _pretEmettreDestination = true;
       _donneeRecueSource = false;
+      _MAX_SEQ = 7;
+      _frameQueueToSend = new Frame[_MAX_SEQ + 1];
+      _ackQueueToSend = new Frame[_MAX_SEQ + 1];
+      _nextFrameToSend = 0;
+      _nextAckToSend = 0;
+      _oldestFrameToSend = 0;
+      _oldestAckToSend = 0;
+      _nbFrameBufferedToSend = 0;
+      _nbAckBufferedToSend = 0;
+      _frameQueueToReceive = new Frame[_MAX_SEQ + 1];
+      _ackQueueToReceive = new Frame[_MAX_SEQ + 1];
+      _nextFrameToReceive = 0;
+      _nextAckToReceive = 0;
+      _oldestFrameToReceive = 0;
+      _oldestAckToReceive = 0;
+      _nbFrameBufferedToReceive = 0;
+      _nbAckBufferedToReceive = 0;
+      _lockFrameToSend = new object();
+      _lockAckToSend = new object();
+      _lockFrameToReceive = new object();
+      _lockAckToReceive = new object();
     }
 
     #endregion
@@ -49,55 +91,85 @@ namespace DataLinkApplication
 
       while (_running)
       {
-        if (!_pretEmettreSource && !_donneeRecueDestination)
+        var dataReady = false;
+        lock (_lockFrameToSend)
+        {
+          dataReady = _nbFrameBufferedToSend > 0;
+        }
+        if (dataReady && !_donneeRecueDestination)
         {
           if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
-            // Corrupt frame
             Console.WriteLine(
               string.Format(
                 "Transmission support: corruption of {0} bits in frame with buffer 0x{1:X} (Thread Id: {2})",
-                _numberOfBitErrors, _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
-            _receptionDestination = Frame.CorruptFrame(_envoiSource, _numberOfBitErrors);
+                _numberOfBitErrors, _frameQueueToSend[_oldestFrameToSend].Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+            _frameQueueToReceive[_nextFrameToReceive] = Frame.CorruptFrame(_frameQueueToSend[_oldestFrameToSend], _numberOfBitErrors);
           }
           else
           {
             Console.WriteLine(
               string.Format("Transmission support: transmission of new frame buffer 0x{0:X} (Thread Id: {1})",
-                _envoiSource.Info.Data[0], Thread.CurrentThread.ManagedThreadId));
-            _receptionDestination = Frame.CopyFrom(_envoiSource);
+                _frameQueueToSend[_oldestFrameToSend].Info.Data[0], Thread.CurrentThread.ManagedThreadId));
+            _frameQueueToReceive[_nextFrameToReceive] = Frame.CopyFrom(_frameQueueToSend[_oldestFrameToSend]);
           }
           _frameNumber++;
+          _oldestFrameToSend = Inc(_oldestFrameToSend);
+          lock (_lockFrameToSend)
+          {
+            _nbFrameBufferedToSend--;
+          }
           _pretEmettreSource = true;
 
           // Simuler la latence du lien physique
           Thread.Sleep(_latency);
 
           // New packet for the destination
+          _nextFrameToReceive = Inc(_nextFrameToReceive);
+          lock (_lockFrameToReceive)
+          {
+            _nbFrameBufferedToReceive++;
+          }
           _donneeRecueDestination = true;
         }
-        if (!_pretEmettreDestination && !_donneeRecueSource)
+
+        var ackReady = false;
+        lock (_lockAckToSend)
+        {
+          ackReady = _nbAckBufferedToSend > 0;
+        }
+        if (ackReady && !_donneeRecueSource)
         {
           if ((_frameToCorrupt != 0) && (_frameNumber % _frameToCorrupt) == 0)
           {
             Console.WriteLine(string.Format(
               "Transmission support: corruption of {0} bits in frame Ack (Thread Id: {1})",
               _numberOfBitErrors, Thread.CurrentThread.ManagedThreadId));
-            _receptionSource = Frame.CorruptFrame(_envoiDestination, _numberOfBitErrors);
+            _ackQueueToReceive[_oldestAckToReceive] = Frame.CorruptFrame(_ackQueueToSend[_oldestAckToSend], _numberOfBitErrors);
           }
           else
           {
             Console.WriteLine(string.Format("Transmission support: transmission of new Ack (Thread Id: {0})",
               Thread.CurrentThread.ManagedThreadId));
-            _receptionSource = Frame.CopyFrom(_envoiDestination);
+            _ackQueueToReceive[_oldestAckToReceive] = Frame.CopyFrom(_ackQueueToSend[_oldestAckToSend]);
           }
           _frameNumber++;
+          _oldestAckToSend = Inc(_oldestAckToSend);
+          lock (_lockAckToSend)
+          {
+            _nbAckBufferedToSend--;
+          }
           _pretEmettreDestination = true;
 
           // Simuler la latence du lien physique
           Thread.Sleep(_latency);
 
           // New Ack for the source
+          _nextAckToReceive = Inc(_nextAckToReceive);
+          lock (_lockAckToReceive)
+          {
+            _nbAckBufferedToReceive++;
+          }
           _donneeRecueSource = true;
         }
       }
@@ -118,8 +190,21 @@ namespace DataLinkApplication
 
     public void SendData(Frame frame)
     {
-      _envoiSource = Frame.CopyFrom(frame);
-      _pretEmettreSource = false;
+      _frameQueueToSend[_nextFrameToSend] = frame;
+      _envoiSource = frame;
+      _nextFrameToSend = Inc(_nextFrameToSend);
+      lock (_lockFrameToSend)
+      {
+        _nbFrameBufferedToSend++;
+        if (_nbFrameBufferedToSend < _MAX_SEQ)
+        {
+          _pretEmettreSource = true;
+        }
+        else
+        {
+          _pretEmettreSource = false;
+        }
+      }
     }
 
     public bool ReadyToReceiveData
@@ -132,10 +217,23 @@ namespace DataLinkApplication
 
     public Frame ReceiveData()
     {
-      var frame = Frame.CopyFrom(_receptionDestination);
-      _donneeRecueDestination = false;
+      var frame = Frame.CopyFrom(_frameQueueToReceive[_oldestFrameToReceive]);
+      _oldestFrameToReceive = Inc(_oldestFrameToReceive);
+      lock (_lockFrameToReceive)
+      {
+        _nbFrameBufferedToReceive--;
+        if (_nbFrameBufferedToReceive > 0)
+        {
+          _donneeRecueDestination = true;
+        }
+        else
+        {
+          _donneeRecueDestination = false;
+        }
+      }
 
       return frame;
+
     }
 
     public bool ReadyToSendAck
@@ -148,8 +246,21 @@ namespace DataLinkApplication
 
     public void SendAck(Frame frame)
     {
-      _envoiDestination = Frame.CopyFrom(frame);
-      _pretEmettreDestination = false;
+      _ackQueueToSend[_nextAckToSend] = frame;
+      _envoiDestination = frame;
+      _nextAckToSend = Inc(_nextAckToSend);
+      lock (_lockAckToSend)
+      {
+        _nbAckBufferedToSend++;
+        if (_nbAckBufferedToSend < _MAX_SEQ)
+        {
+          _pretEmettreDestination = true;
+        }
+        else
+        {
+          _pretEmettreDestination = false;
+        }
+      }
     }
 
     public bool ReadyToReceiveAck
@@ -162,12 +273,33 @@ namespace DataLinkApplication
 
     public Frame ReceiveAck()
     {
-      var frame = Frame.CopyFrom(_receptionSource);
-      _donneeRecueSource = false;
+      var frame = Frame.CopyFrom(_ackQueueToReceive[_oldestAckToReceive]);
+      _oldestAckToReceive = Inc(_oldestAckToReceive);
+      lock (_lockAckToReceive)
+      {
+        _nbAckBufferedToReceive--;
+        if (_nbAckBufferedToReceive > 0)
+        {
+          _donneeRecueSource = true;
+        }
+        else
+        {
+          _donneeRecueSource = false;
+        }
+      }
 
       return frame;
     }
 
     #endregion
+
+    private byte Inc(byte valueToIncrement)
+    {
+      if (valueToIncrement < _MAX_SEQ)
+      {
+        return (byte)(valueToIncrement + 1);
+      }
+      return 0;
+    }
   }
 }
