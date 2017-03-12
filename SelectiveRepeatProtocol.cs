@@ -69,15 +69,12 @@ namespace DataLinkApplication
             // In our case, a new packet read from the input file
             // Accept, save, and transmit a new frame.
             // Fetch new packet
-            //Console.WriteLine(string.Format("EVENT NETWORK READY - New packet buffer  from Network layer of {0} (Data link layer Thread Id: {1})",
-            //  (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
             nbBuffered++; /* expand the window */
             if (nbBuffered < _NR_BUFS)
               EnableNetworkLayer();
             else
               DisableNetworkLayer();
             outBuffer[nextFrameToSend % _NR_BUFS] = FromNetworkLayer();
-            //Console.WriteLine("NETWORK READY Data frame Sent: Nbbuffered: {0}  nextFrameToSend: {1}", nbBuffered, nextFrameToSend + 1);
             SendData(FrameKind.Data, nextFrameToSend, frameExpected, outBuffer); /* transmit the frame */
             nextFrameToSend = Inc(nextFrameToSend); /* advance  upper window edge */
 
@@ -90,9 +87,6 @@ namespace DataLinkApplication
             var a = FromPhysicalLayer();  /* scratch variable */
             //Decode frame and correct errors using Hamming protocol
             var r = Hamming.decodeHamming(a);
-            //Console.WriteLine(string.Format("EVENT FRAME ARRIVAL - New frame buffer 0x{0:X} from physical layer of {1} (Data link layer Thread Id: {2} SEQ: {3} ACK: {4})",
-            //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId, r.Seq, r.Ack));
-            //Console.WriteLine("FRAME ARRIVAL frame buffer 0x{4:X} ackExpected: {0}  nextFrameToSend: {1} frameExpected: {2}  tooFar: {3}", ackExpected, nextFrameToSend, frameExpected, tooFar, r.Info.Data[0]);
 
             if (r == null)
             {
@@ -104,35 +98,28 @@ namespace DataLinkApplication
             }
             if (r.Kind == FrameKind.Data)
             {
-              //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} from physical layer of {1} (Data link layer Thread Id: {2})",
-              //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
               if ((r.Seq != frameExpected) && _no_nak)
               {
-                //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} not expected of {1} (Data link layer Thread Id: {2})",
-                //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
                 SendData(FrameKind.Nak, 0, frameExpected, outBuffer);
-                //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} not expected  Nak sent. Frame expected:  {1} )", r.Info.Data[0], frameExpected));
+
               }
               else
               {
-                StartAckTimer();
-                //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X}  ACCEPTED Start ACKTIMER ", r.Info.Data[0]));
+                StartAckTimer();           
               }
 
               if (Between(frameExpected, r.Seq, tooFar) && (arrived[r.Seq % _NR_BUFS] == false))
               {
                 arrived[r.Seq % _NR_BUFS] = true;           //mark buffer as full
                 inBuffer[r.Seq % _NR_BUFS] = r.Info;        //insert data
-                //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data Frame 0x{0:X} ACCEPTED stored in buffer)", r.Info.Data[0]));
+     
                 while (arrived[frameExpected % _NR_BUFS])
                 {
-                  //Console.WriteLine(string.Format(" FRAME ARRIVAL - Data frame {0} send to network layer )", frameExpected));
                   ToNetworkLayer(inBuffer[frameExpected % _NR_BUFS]);
                   _no_nak = true;
                   arrived[frameExpected % _NR_BUFS] = false;
                   frameExpected = Inc(frameExpected);
                   tooFar = Inc(tooFar);
-                  //oldest_frame = (byte)((frameExpected + 1) % _NR_BUFS);
                   StartAckTimer();
                 }
               }
@@ -140,15 +127,10 @@ namespace DataLinkApplication
 
             if ((r.Kind == FrameKind.Nak) && Between(ackExpected, (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), nextFrameToSend))
             {
-              //Console.WriteLine(string.Format(" FRAME ARRIVAL - NACK Frame 0x{0:X} from physical layer of {1} (Data link layer Thread Id: {2})",
-              //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", Thread.CurrentThread.ManagedThreadId));
-              //Console.WriteLine(string.Format(" FRAME ARRIVAL - NACK Frame 0x{0:X} Data frame sent: framenb: {1}  frameExpected: {2}",
-              //  r.Info.Data[0], (_actorType == 0) ? "transmitter" : "receiver", (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), frameExpected));
               SendData(FrameKind.Data, (byte)((r.Ack + 1) % (_MAX_SEQ + 1)), frameExpected, outBuffer);
             }
             while (Between(ackExpected, r.Ack, nextFrameToSend))
             {
-              //Console.WriteLine(string.Format(" FRAME ARRIVAL - ACK Received Frame 0x{0:X} TimerStopped", r.Info.Data[0]));
               nbBuffered--;
               StopTimer(ackExpected % _NR_BUFS); /* frame arrived intact; stop timer */
               ackExpected = Inc(ackExpected); /* contract sender’s window */
@@ -169,7 +151,6 @@ namespace DataLinkApplication
 
             break;
           case _ACK_TIMEOUT:
-            //Console.WriteLine(string.Format(" EVENT ACK TIME OUT - ACK FRAME SENT  frameExpected: {0}  ", frameExpected));
             SendData(FrameKind.Ack, 0, frameExpected, outBuffer);
             break;
         }
